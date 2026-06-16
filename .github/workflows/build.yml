@@ -1,0 +1,37 @@
+name: Build & Test Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup .NET 9
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Run unit tests
+      run: dotnet test Certus.Tests.Unit --configuration Release --no-build --verbosity normal
+
+    - name: Run integration tests
+      run: dotnet test Certus.Tests.Integration --configuration Release --no-build --verbosity normal
+
+    - name: Publish API
+      run: dotnet publish Certus.API/Certus.API.csproj -c Release -o ./publish/api --no-build
+
+    - name: Publish UI
+      run: dotnet publish Certus.UI/Certus.UI.csproj -c Release -o ./publish/ui --no-build
