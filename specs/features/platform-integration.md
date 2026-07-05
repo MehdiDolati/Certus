@@ -159,6 +159,14 @@ ImportedTrade
 - [ ] AC-017: Given a plugin directory with DLLs implementing IPlatformPlugin, when loading plugins, then all valid plugins are registered
 - [ ] AC-018: Given a DLL that doesn't implement IPlatformPlugin, when loading, then it is skipped without error
 
+### Strategy Information Collection
+- [ ] AC-019: Given an EA writing strategy data, when Certus reads portfolio_status.json, then strategy parameters, open positions, and performance metrics are captured
+- [ ] AC-020: Given imported trades and expected trade outcomes, when calculating deviations, then deviation percentage and direction are computed
+- [ ] AC-021: Given the EA writing portfolio_status.json, when Certus reads it, then the JSON matches the defined schema (timestamp, portfolio, strategies array)
+- [ ] AC-022: Given the EA writing trades.json, when Certus reads it, then the JSON matches the defined schema (timestamp, trades array with full lifecycle data)
+- [ ] AC-023: Given the EA configured with an update interval, when the interval elapses, then portfolio_status.json is rewritten with current data
+- [ ] AC-024: Given a trade occurring on the platform, when the EA detects it, then trades.json is appended immediately
+
 ## Test Mapping
 
 | Acceptance Criteria | Test File | Test Method |
@@ -181,6 +189,12 @@ ImportedTrade
 | AC-016 | FileImportServiceTests.cs | FileSystemWatcher_Should_Raise_Event_On_Change |
 | AC-017 | PluginLoaderTests.cs | LoadPlugins_Should_Register_Valid_Plugins |
 | AC-018 | PluginLoaderTests.cs | LoadPlugins_Should_Skip_Invalid_Assemblies |
+| AC-019 | Mt4AdapterTests.cs | GetPortfoliosAsync_Should_Collect_Strategy_Data |
+| AC-020 | DeviationCalculationTests.cs | CalculateDeviation_Should_Compute_Percentage_And_Direction |
+| AC-021 | Mt4JsonParserTests.cs | ParsePortfolio_Should_Match_Defining_Schema |
+| AC-022 | Mt4JsonParserTests.cs | ParseTrades_Should_Match_Defining_Schema |
+| AC-023 | Mt4AdapterTests.cs | Portfolio_Status_Should_Be_Updated_Per_Interval |
+| AC-024 | Mt4AdapterTests.cs | Trade_Should_Be_Appended_Immediately_On_Detection |
 
 ## API Contract
 
