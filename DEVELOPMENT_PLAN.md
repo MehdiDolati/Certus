@@ -70,6 +70,28 @@ Certus.slnx
 - **Architecture tests**: NetArchTest dependency rules
 - **E2E tests**: Playwright browser automation for UI flows
 
+### Phase 9: Platform Integration
+- Plugin architecture for trading platform adapters
+- MetaTrader 4 plugin with file-based data import
+- FileImportService with FileSystemWatcher for real-time monitoring
+- PlatformService with connect, disconnect, import operations
+- 120 tests covering all 18 acceptance criteria
+
+### Coverage Targets
+
+| Layer | Target | Current | Rationale |
+|-------|--------|---------|-----------|
+| Domain | **100%** | 96.3% | All business logic, entities, value objects, events |
+| Application | **100%** | 90.8% | All service methods, DTOs, request/response types |
+| Infrastructure | **100%** | — | Repositories, file I/O, plugin loading |
+| Architecture | 100% | 100% | NetArchTest dependency rules |
+| Integration | Best effort | — | Full pipeline with real DB |
+| E2E | Behavior only | — | Browser-based UI flows |
+
+**Why 100% for Domain?** The Domain layer contains all business rules, invariants, and entity behavior. Missing coverage here means untested business logic — the highest-risk area for bugs.
+
+**What can't be measured?** Blazor components (run in SignalR circuits), EF Core configurations (framework metadata), and startup/DI wiring (verified by integration tests).
+
 ### Phase 7: DevOps
 - Dockerfile: Multi-stage build (SDK → runtime)
 - docker-compose.yml: Single service with persistent SQLite volume
