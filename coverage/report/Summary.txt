@@ -1,0 +1,161 @@
+Summary
+  Generated on: 7/5/2026 - 5:57:26 PM
+  Coverage date: 7/5/2026 - 5:57:21 PM - 7/5/2026 - 5:57:25 PM
+  Parser: MultiReport (2x Cobertura)
+  Assemblies: 2
+  Classes: 137
+  Files: 133
+  Line coverage: 96.6%
+  Covered lines: 2474
+  Uncovered lines: 86
+  Coverable lines: 2560
+  Total lines: 4265
+  Branch coverage: 84.6% (315 of 372)
+  Covered branches: 315
+  Total branches: 372
+  Method coverage: 97.4% (1037 of 1064)
+  Full method coverage: 95.8% (1020 of 1064)
+  Covered methods: 1037
+  Fully covered methods: 1020
+  Total methods: 1064
+
+Certus.Application                                                 94.2%
+  Certus.Application.Platform.DTOs.ConnectPlatformRequest           100%
+  Certus.Application.Platform.DTOs.ImportTradesResult               100%
+  Certus.Application.Platform.DTOs.PlatformConnectionDto            100%
+  Certus.Application.Platform.DTOs.PlatformDashboardDto             100%
+  Certus.Application.Platform.DTOs.PlatformPortfolioDto             100%
+  Certus.Application.Platform.DTOs.PlatformStatusDto                100%
+  Certus.Application.Platform.DTOs.PlatformStrategyDto              100%
+  Certus.Application.Platform.DTOs.PlatformStrategySummaryDto       100%
+  Certus.Application.Platform.PlatformService                      84.3%
+  Certus.Application.Portfolios.DTOs.CreatePortfolioRequest         100%
+  Certus.Application.Portfolios.DTOs.DashboardKpis                  100%
+  Certus.Application.Portfolios.DTOs.PortfolioDetailDto             100%
+  Certus.Application.Portfolios.DTOs.PortfolioDto                   100%
+  Certus.Application.Portfolios.DTOs.PortfolioFilter                100%
+  Certus.Application.Portfolios.DTOs.UpdatePortfolioRequest         100%
+  Certus.Application.Portfolios.PortfolioService                   97.8%
+  Certus.Application.Strategies.DTOs.CreateStrategyRequest          100%
+  Certus.Application.Strategies.DTOs.StrategyPerformanceDto         100%
+  Certus.Application.Strategies.DTOs.UpdateStrategyRequest          100%
+  Certus.Application.Strategies.StrategyService                     100%
+  Certus.Application.Trading.DTOs.MonthlyReturnDto                  100%
+  Certus.Application.Trading.DTOs.PerformanceSnapshotDto            100%
+  Certus.Application.Trading.DTOs.TradeDetailDto                    100%
+  Certus.Application.Trading.DTOs.TradeDto                         93.7%
+  Certus.Application.Trading.DTOs.TradeFilter                       100%
+  Certus.Application.Trading.TradeService                           100%
+
+Certus.Domain                                                      97.7%
+  Certus.Domain.Coordination.Aggregates.AgentTask                  97.6%
+  Certus.Domain.Coordination.Aggregates.SystemHealth               96.9%
+  Certus.Domain.Coordination.Entities.AgentState                   94.7%
+  Certus.Domain.Coordination.Entities.CoordinationCycle            94.1%
+  Certus.Domain.Coordination.Entities.TaskDependency               87.5%
+  Certus.Domain.Coordination.Events.AgentStatusChanged              100%
+  Certus.Domain.Coordination.Events.CycleCompleted                  100%
+  Certus.Domain.Coordination.Events.CycleStarted                    100%
+  Certus.Domain.Coordination.Events.SystemAlert                     100%
+  Certus.Domain.Coordination.Events.TaskAssigned                    100%
+  Certus.Domain.Coordination.Events.TaskCompleted                   100%
+  Certus.Domain.Coordination.ValueObjects.AgentId                   100%
+  Certus.Domain.Coordination.ValueObjects.AgentStatusInfo           100%
+  Certus.Domain.Coordination.ValueObjects.CycleMetrics              100%
+  Certus.Domain.Coordination.ValueObjects.HealthStatus              100%
+  Certus.Domain.Coordination.ValueObjects.TaskPriority              100%
+  Certus.Domain.Evaluation.Aggregates.PerformanceReport              98%
+  Certus.Domain.Evaluation.Entities.BenchmarkComparison              90%
+  Certus.Domain.Evaluation.Entities.FeedbackEntry                  92.8%
+  Certus.Domain.Evaluation.Entities.PerformanceSnapshot            95.8%
+  Certus.Domain.Evaluation.Entities.StrategyEvaluation             92.8%
+  Certus.Domain.Evaluation.Events.DrawdownAlert                     100%
+  Certus.Domain.Evaluation.Events.FeedbackGenerated                 100%
+  Certus.Domain.Evaluation.Events.PerformanceEvaluated              100%
+  Certus.Domain.Evaluation.Events.StrategyScored                    100%
+  Certus.Domain.Evaluation.ValueObjects.BenchmarkResult             100%
+  Certus.Domain.Evaluation.ValueObjects.EvaluationScore             100%
+  Certus.Domain.Evaluation.ValueObjects.ReturnMetrics               100%
+  Certus.Domain.Evaluation.ValueObjects.RiskMetrics                 100%
+  Certus.Domain.Evaluation.ValueObjects.TradeMetrics                100%
+  Certus.Domain.Execution.Aggregates.Trade                         98.9%
+  Certus.Domain.Execution.Entities.ExecutionLog                    91.6%
+  Certus.Domain.Execution.Entities.Fill                            93.7%
+  Certus.Domain.Execution.Entities.Order                           98.1%
+  Certus.Domain.Execution.Events.OrderFilled                        100%
+  Certus.Domain.Execution.Events.OrderSubmitted                     100%
+  Certus.Domain.Execution.Events.SlippageReported                   100%
+  Certus.Domain.Execution.Events.TradeCancelled                     100%
+  Certus.Domain.Execution.Events.TradeClosed                        100%
+  Certus.Domain.Execution.Events.TradeOpened                        100%
+  Certus.Domain.Execution.ValueObjects.ExecutionResult              100%
+  Certus.Domain.Execution.ValueObjects.OrderRequest                 100%
+  Certus.Domain.Execution.ValueObjects.SlippageMetrics              100%
+  Certus.Domain.Execution.ValueObjects.TradeIdentifier              100%
+  Certus.Domain.Execution.ValueObjects.TradeLifecycle               100%
+  Certus.Domain.Market.Aggregates.MarketDataSeries                 95.2%
+  Certus.Domain.Market.Aggregates.Signal                           94.7%
+  Certus.Domain.Market.Events.AnomalyDetected                       100%
+  Certus.Domain.Market.Events.MarketDataReceived                    100%
+  Certus.Domain.Market.Events.SignalPublished                       100%
+  Certus.Domain.Market.ValueObjects.PriceBar                        100%
+  Certus.Domain.Market.ValueObjects.PriceRange                      100%
+  Certus.Domain.Market.ValueObjects.SignalStrength                  100%
+  Certus.Domain.Market.ValueObjects.TechnicalIndicator              100%
+  Certus.Domain.Market.ValueObjects.TimeFrame                       100%
+  Certus.Domain.Market.ValueObjects.VolumeProfile                   100%
+  Certus.Domain.Platform.Aggregates.PlatformConnection             94.6%
+  Certus.Domain.Platform.Events.DataReceived                        100%
+  Certus.Domain.Platform.Events.PlatformConnected                   100%
+  Certus.Domain.Platform.Events.PlatformConnectionCreated           100%
+  Certus.Domain.Platform.Events.PlatformConnectionError             100%
+  Certus.Domain.Platform.Events.PlatformDisconnected                100%
+  Certus.Domain.Platform.Events.PortfolioImported                   100%
+  Certus.Domain.Platform.Events.StrategyStatusChanged               100%
+  Certus.Domain.Platform.Events.TradeImported                       100%
+  Certus.Domain.Platform.Interfaces.FileImportEventArgs             100%
+  Certus.Domain.Platform.Interfaces.PlatformConnectionResult        100%
+  Certus.Domain.Platform.Interfaces.PlatformStatus                  100%
+  Certus.Domain.Platform.Repositories.ImportedTrade                95.2%
+  Certus.Domain.Platform.ValueObjects.FilePlatformConfig            100%
+  Certus.Domain.Platform.ValueObjects.PlatformConfig                100%
+  Certus.Domain.Platform.ValueObjects.PlatformPortfolio             100%
+  Certus.Domain.Platform.ValueObjects.PlatformStrategy              100%
+  Certus.Domain.Platform.ValueObjects.PlatformTrade                 100%
+  Certus.Domain.RiskAndPortfolio.Aggregates.Portfolio              95.2%
+  Certus.Domain.RiskAndPortfolio.Entities.AllocationRule             96%
+  Certus.Domain.RiskAndPortfolio.Entities.CapitalAllocation        94.4%
+  Certus.Domain.RiskAndPortfolio.Entities.RiskAssessment           95.4%
+  Certus.Domain.RiskAndPortfolio.Entities.RiskLimit                96.7%
+  Certus.Domain.RiskAndPortfolio.Events.CapitalReallocated          100%
+  Certus.Domain.RiskAndPortfolio.Events.PortfolioCreated            100%
+  Certus.Domain.RiskAndPortfolio.Events.PortfolioStatusChanged      100%
+  Certus.Domain.RiskAndPortfolio.Events.RiskAssessmentCompleted     100%
+  Certus.Domain.RiskAndPortfolio.Events.RiskLimitAdjusted           100%
+  Certus.Domain.RiskAndPortfolio.Events.RiskLimitBreached           100%
+  Certus.Domain.RiskAndPortfolio.ValueObjects.AdaptiveRiskParams    100%
+  Certus.Domain.RiskAndPortfolio.ValueObjects.AllocationTarget      100%
+  Certus.Domain.RiskAndPortfolio.ValueObjects.DrawdownLimit         100%
+  Certus.Domain.RiskAndPortfolio.ValueObjects.PositionLimit         100%
+  Certus.Domain.RiskAndPortfolio.ValueObjects.VaRMetric             100%
+  Certus.Domain.SharedKernel.AggregateRoot                           90%
+  Certus.Domain.SharedKernel.DateRange                              100%
+  Certus.Domain.SharedKernel.Entity                                86.6%
+  Certus.Domain.SharedKernel.Money                                  100%
+  Certus.Domain.SharedKernel.PaginatedResult<T>                     100%
+  Certus.Domain.SharedKernel.Symbol                                 100%
+  Certus.Domain.SharedKernel.ValueObject                            100%
+  Certus.Domain.Strategy.Aggregates.StrategyDefinition               99%
+  Certus.Domain.Strategy.Entities.BacktestRun                        97%
+  Certus.Domain.Strategy.Entities.BacktestTrade                    96.1%
+  Certus.Domain.Strategy.Entities.StrategyParameter                  96%
+  Certus.Domain.Strategy.Entities.StrategySlot                     85.7%
+  Certus.Domain.Strategy.Events.BacktestCompleted                   100%
+  Certus.Domain.Strategy.Events.StrategyActivated                   100%
+  Certus.Domain.Strategy.Events.StrategyDeactivated                 100%
+  Certus.Domain.Strategy.ValueObjects.BacktestConfig                100%
+  Certus.Domain.Strategy.ValueObjects.BacktestMetrics               100%
+  Certus.Domain.Strategy.ValueObjects.ConfidenceInterval            100%
+  Certus.Domain.Strategy.ValueObjects.RiskProfile                   100%
+  Certus.Domain.Strategy.ValueObjects.StrategyType                  100%
+  Certus.Domain.Strategy.ValueObjects.Weight                        100%
