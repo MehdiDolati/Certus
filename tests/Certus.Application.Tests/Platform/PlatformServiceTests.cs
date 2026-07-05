@@ -220,6 +220,102 @@ public class PlatformServiceTests
         result.TradesImported.Should().Be(0);
     }
 
+    [Fact]
+    public async Task GetDashboardAsync_Should_Return_Correct_Stats()
+    {
+        var connections = new List<PlatformConnection> { CreateConnection() };
+        _connectionRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(connections);
+        _tradeRepoMock.Setup(r => r.GetCountByStrategyAsync(Guid.Empty)).ReturnsAsync(10);
+        _tradeRepoMock.Setup(r => r.GetTotalPnLByStrategyAsync(Guid.Empty)).ReturnsAsync(500m);
+        _portfolioRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(new List<Domain.RiskAndPortfolio.Aggregates.Portfolio>());
+
+        var result = await _sut.GetDashboardAsync();
+
+        result.TotalConnections.Should().Be(1);
+        result.ActiveConnections.Should().Be(0); // Connection is in Disconnected state
+        result.TotalTrades.Should().Be(10);
+        result.TotalPnL.Should().Be(500m);
+    }
+
+    [Fact]
+    public async Task GetConnectionAsync_Should_Return_Null_When_Not_Found()
+    {
+        _connectionRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync((Domain.Platform.Aggregates.PlatformConnection?)null);
+
+        var result = await _sut.GetConnectionAsync(Guid.NewGuid());
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetStatusAsync_Should_Throw_When_Not_Found()
+    {
+        _connectionRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync((Domain.Platform.Aggregates.PlatformConnection?)null);
+
+        var act = () => _sut.GetStatusAsync(Guid.NewGuid());
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task ImportTradesAsync_Should_Throw_When_Connection_Not_Found()
+    {
+        _connectionRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync((Domain.Platform.Aggregates.PlatformConnection?)null);
+
+        var act = () => _sut.ImportTradesAsync(Guid.NewGuid(), "EA_01");
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task ImportTradesAsync_Should_Filter_By_Date()
+    {
+        var connection = CreateConnection();
+        _connectionRepoMock.Setup(r => r.GetByIdAsync(connection.Id)).ReturnsAsync(connection);
+
+        var now = DateTime.UtcNow;
+        var trades = new List<PlatformTrade>
+        {
+            new() { ExternalId = "1", StrategyExternalId = "EA_01", OpenTime = now.AddDays(-10) },
+            new() { ExternalId = "2", StrategyExternalId = "EA_01", OpenTime = now.AddDays(-2) },
+            new() { ExternalId = "3", StrategyExternalId = "EA_01", OpenTime = now }
+        };
+        _dataRepoMock.Setup(r => r.GetTradesByStrategyAsync(connection.Id, "EA_01"))
+            .ReturnsAsync(trades);
+        _tradeRepoMock.Setup(r => r.GetByExternalIdAsync(It.IsAny<string>()))
+            .ReturnsAsync((ImportedTrade?)null);
+        _tradeRepoMock.Setup(r => r.AddAsync(It.IsAny<ImportedTrade>())).Returns(Task.CompletedTask);
+        _tradeRepoMock.Setup(r => r.GetByStrategyIdAsync(Guid.Empty))
+            .ReturnsAsync(new List<ImportedTrade>());
+
+        var result = await _sut.ImportTradesAsync(connection.Id, "EA_01",
+            from: now.AddDays(-5), to: now.AddDays(-1));
+
+        result.TradesImported.Should().Be(1); // Only trade "2" falls in range
+    }
+
+    [Fact]
+    public async Task ImportPortfolioAsync_Should_Throw_When_Connection_Not_Found()
+    {
+        _connectionRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync((Domain.Platform.Aggregates.PlatformConnection?)null);
+
+        var act = () => _sut.ImportPortfolioAsync(Guid.NewGuid(), "MT4_123");
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task DisconnectAsync_Should_Throw_When_Connection_Not_Found()
+    {
+        _connectionRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync((Domain.Platform.Aggregates.PlatformConnection?)null);
+
+        var act = () => _sut.DisconnectAsync(Guid.NewGuid());
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
     private static PlatformConnection CreateConnection()
     {
         var config = new PlatformConfig

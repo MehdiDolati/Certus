@@ -1,5 +1,6 @@
 using Certus.Application.Portfolios;
 using Certus.Application.Portfolios.DTOs;
+using Certus.Domain.RiskAndPortfolio.Aggregates;
 using Certus.Domain.RiskAndPortfolio.Enums;
 using Certus.Domain.SharedKernel;
 using Certus.Domain.Strategy.Enums;
@@ -19,7 +20,7 @@ public class PortfolioCrudTests
     [Fact]
     public async Task CreateAsync_Should_Return_Portfolio_With_Id()
     {
-        _portfolioRepo.Setup(r => r.AddAsync(It.IsAny<Certus.Domain.RiskAndPortfolio.Aggregates.Portfolio>()))
+        _portfolioRepo.Setup(r => r.AddAsync(It.IsAny<Portfolio>()))
             .Returns(Task.CompletedTask);
         var service = CreateService();
 
@@ -29,12 +30,51 @@ public class PortfolioCrudTests
         result.Id.Should().NotBeEmpty();
         result.Name.Should().Be("Test Fund");
         result.Status.Should().Be(PortfolioStatus.Active);
+        result.Aum.Should().Be(1_000_000m);
+    }
+
+    [Fact]
+    public async Task CreateAsync_Should_Call_AddAsync_And_SaveChangesAsync()
+    {
+        _portfolioRepo.Setup(r => r.AddAsync(It.IsAny<Portfolio>()))
+            .Returns(Task.CompletedTask);
+        _portfolioRepo.Setup(r => r.SaveChangesAsync()).ReturnsAsync(1);
+        var service = CreateService();
+
+        await service.CreateAsync(new CreatePortfolioRequest(
+            "Fund", "Desc", 0.1m, 1.0m, 500_000m));
+
+        _portfolioRepo.Verify(r => r.AddAsync(It.IsAny<Portfolio>()), Times.Once);
+        _portfolioRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_Should_Throw_On_Empty_Name()
+    {
+        var service = CreateService();
+
+        Func<Task> act = () => service.CreateAsync(new CreatePortfolioRequest(
+            "", "Desc", 0.1m, 1.0m, 100_000m));
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*name*");
+    }
+
+    [Fact]
+    public async Task CreateAsync_Should_Throw_On_Whitespace_Name()
+    {
+        var service = CreateService();
+
+        Func<Task> act = () => service.CreateAsync(new CreatePortfolioRequest(
+            "   ", "Desc", 0.1m, 1.0m, 100_000m));
+
+        await act.Should().ThrowAsync<ArgumentException>();
     }
 
     [Fact]
     public async Task UpdateAsync_Should_Persist_Changes()
     {
-        var existing = new Certus.Domain.RiskAndPortfolio.Aggregates.Portfolio(
+        var existing = new Portfolio(
             Guid.NewGuid(), "Old Name", 0.1m, 1.0m,
             new Money(500_000m, Currency.USD), "Old");
         _portfolioRepo.Setup(r => r.GetByIdAsync(existing.Id)).ReturnsAsync(existing);
@@ -47,12 +87,41 @@ public class PortfolioCrudTests
         result.Should().NotBeNull();
         result!.Name.Should().Be("New Name");
         result.Description.Should().Be("New Desc");
+        result.Aum.Should().Be(2_000_000m);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_Should_Return_Null_When_Not_Found()
+    {
+        _portfolioRepo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync((Portfolio?)null);
+        var service = CreateService();
+
+        var result = await service.UpdateAsync(Guid.NewGuid(), new UpdatePortfolioRequest(
+            "Name", "Desc", 0.1m, 1.0m, 100_000m));
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateAsync_Should_Throw_On_Empty_Name()
+    {
+        var existing = new Portfolio(
+            Guid.NewGuid(), "Fund", 0.1m, 1.0m, new Money(100_000m, Currency.USD));
+        _portfolioRepo.Setup(r => r.GetByIdAsync(existing.Id)).ReturnsAsync(existing);
+        var service = CreateService();
+
+        Func<Task> act = () => service.UpdateAsync(existing.Id, new UpdatePortfolioRequest(
+            "", "Desc", 0.1m, 1.0m, 100_000m));
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*name*");
     }
 
     [Fact]
     public async Task DeleteAsync_Should_Set_Status_Closed()
     {
-        var existing = new Certus.Domain.RiskAndPortfolio.Aggregates.Portfolio(
+        var existing = new Portfolio(
             Guid.NewGuid(), "Fund", 0.1m, 1.0m,
             new Money(100_000m, Currency.USD));
         _portfolioRepo.Setup(r => r.GetByIdAsync(existing.Id)).ReturnsAsync(existing);
@@ -69,7 +138,7 @@ public class PortfolioCrudTests
     public async Task DeleteAsync_Should_Return_False_When_Not_Found()
     {
         _portfolioRepo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
-            .ReturnsAsync((Certus.Domain.RiskAndPortfolio.Aggregates.Portfolio?)null);
+            .ReturnsAsync((Portfolio?)null);
         var service = CreateService();
 
         var result = await service.DeleteAsync(Guid.NewGuid());
@@ -78,15 +147,19 @@ public class PortfolioCrudTests
     }
 
     [Fact]
-    public async Task CreateAsync_Should_Throw_On_Empty_Name()
+    public async Task DeleteAsync_Should_Call_Update_And_SaveChanges()
     {
+        var existing = new Portfolio(
+            Guid.NewGuid(), "Fund", 0.1m, 1.0m,
+            new Money(100_000m, Currency.USD));
+        _portfolioRepo.Setup(r => r.GetByIdAsync(existing.Id)).ReturnsAsync(existing);
+        _portfolioRepo.Setup(r => r.SaveChangesAsync()).ReturnsAsync(1);
         var service = CreateService();
 
-        Func<Task> act = () => service.CreateAsync(new CreatePortfolioRequest(
-            "", "Desc", 0.1m, 1.0m, 100_000m));
+        await service.DeleteAsync(existing.Id);
 
-        await act.Should().ThrowAsync<ArgumentException>()
-            .WithMessage("*name*");
+        _portfolioRepo.Verify(r => r.Update(It.IsAny<Portfolio>()), Times.Once);
+        _portfolioRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
     private PortfolioService CreateService()
