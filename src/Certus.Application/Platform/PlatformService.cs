@@ -73,11 +73,12 @@ public class PlatformService : IPlatformService
         if (!string.IsNullOrEmpty(request.FilePath) && request.UseFileWatcher)
         {
             _fileImportService.StartWatching(connection.Id, request.FilePath);
-            _fileImportService.FileChanged += (sender, args) =>
+            _fileImportService.FileChanged += async (sender, args) =>
             {
                 if (args.ConnectionId == connection.Id)
                 {
                     connection.UpdateLastDataReceived();
+                    await AutoImportFromChangeAsync(connection, args);
                 }
             };
         }
@@ -319,6 +320,109 @@ public class PlatformService : IPlatformService
 
         // For now, return empty guid - in production, we'd create a strategy record
         return Guid.Empty;
+    }
+
+    private async Task AutoImportFromChangeAsync(PlatformConnection connection, FileImportEventArgs args)
+    {
+        try
+        {
+            var plugin = _pluginLoader.GetPlugin(connection.PlatformId);
+            if (plugin == null) return;
+
+            var parser = plugin.GetParsers().FirstOrDefault();
+            if (parser == null) return;
+
+            var content = await _fileImportService.ReadFileAsync(args.FilePath);
+            if (string.IsNullOrEmpty(content)) return;
+
+            var fileName = Path.GetFileName(args.FilePath).ToLowerInvariant();
+
+            if (fileName.Contains("portfolio"))
+            {
+                var platformPortfolio = parser.ParsePortfolio(content);
+                if (platformPortfolio != null)
+                {
+                    var existingPortfolios = await _portfolioRepo.GetAllAsync();
+                    var existing = existingPortfolios.FirstOrDefault(p =>
+                        p.PlatformConnectionId == connection.Id &&
+                        p.ExternalPortfolioId == platformPortfolio.ExternalId);
+
+                    if (existing == null)
+                    {
+                        var portfolio = new Portfolio(
+                            Guid.NewGuid(),
+                            platformPortfolio.Name,
+                            0, 0,
+                            new Money(platformPortfolio.Balance, Currency.USD),
+                            $"Auto-imported from {connection.PlatformName}");
+
+                        portfolio.SetPlatformReference(connection.Id, platformPortfolio.ExternalId);
+                        await _portfolioRepo.AddAsync(portfolio);
+
+                        await _eventDispatcher.DispatchAsync(new PortfolioImported
+                        {
+                            PortfolioId = portfolio.Id,
+                            ConnectionId = connection.Id,
+                            ExternalId = platformPortfolio.ExternalId
+                        });
+                    }
+                    else
+                    {
+                        existing.UpdateCapital(new Money(platformPortfolio.Balance, Currency.USD));
+                        existing.UpdateLastSynced();
+                        _portfolioRepo.Update(existing);
+                    }
+                }
+            }
+            else if (fileName.Contains("trade"))
+            {
+                var platformTrades = parser.ParseTrades(content);
+                foreach (var platformTrade in platformTrades)
+                {
+                    var existing = await _tradeRepo.GetByExternalIdAsync(platformTrade.ExternalId);
+                    if (existing != null) continue;
+
+                    var strategyId = await FindOrCreateStrategyMappingAsync(connection.Id, platformTrade.StrategyExternalId);
+
+                    var importedTrade = new ImportedTrade
+                    {
+                        Id = Guid.NewGuid(),
+                        ExternalId = platformTrade.ExternalId,
+                        StrategyId = strategyId,
+                        PortfolioId = Guid.Empty,
+                        ConnectionId = connection.Id,
+                        Symbol = platformTrade.Symbol,
+                        Side = platformTrade.Side.ToString(),
+                        Volume = platformTrade.Volume,
+                        OpenPrice = platformTrade.OpenPrice,
+                        ClosePrice = platformTrade.ClosePrice,
+                        StopLoss = platformTrade.StopLoss,
+                        TakeProfit = platformTrade.TakeProfit,
+                        Profit = platformTrade.Profit,
+                        Commission = platformTrade.Commission,
+                        Swap = platformTrade.Swap,
+                        OpenTime = platformTrade.OpenTime,
+                        CloseTime = platformTrade.CloseTime,
+                        Comment = platformTrade.Comment,
+                        ImportedAt = DateTime.UtcNow
+                    };
+
+                    await _tradeRepo.AddAsync(importedTrade);
+
+                    await _eventDispatcher.DispatchAsync(new TradeImported
+                    {
+                        TradeId = importedTrade.Id,
+                        StrategyId = strategyId,
+                        ExternalId = platformTrade.ExternalId,
+                        PnL = importedTrade.PnL
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PlatformService] Auto-import error: {ex.Message}");
+        }
     }
 
     private static PlatformConnectionDto MapToDto(PlatformConnection connection)
