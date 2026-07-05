@@ -1,8 +1,9 @@
 //+------------------------------------------------------------------+
 //| CertusEA.mq4 - MetaTrader 4 Expert Advisor for Certus Platform  |
 //|                                                                    |
-//| Collects strategy data and writes to shared JSON files that       |
-//| Certus reads via FileSystemWatcher.                               |
+//| SINGLE EA on ANY chart - monitors ALL trading activity.          |
+//| Reads all orders via OrderSelect (MODE_TRADES/MODE_HISTORY).     |
+//| Groups orders by magic number to identify strategies.            |
 //|                                                                    |
 //| Files written:                                                    |
 //|   portfolio_status.json - Account + strategy status (overwritten) |
@@ -10,7 +11,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Certus Platform"
 #property link      ""
-#property version   "1.00"
+#property version   "1.01"
 #property strict
 
 #include "CertusConfig.mqh"
@@ -29,6 +30,7 @@ int OnInit()
 {
    Print("[Certus] EA initialized on ", Symbol(), " ", CertusPeriodToString(Period()));
    Print("[Certus] Account: ", AccountNumber(), " - ", AccountName());
+   Print("[Certus] Monitoring ALL orders across the account");
    Print("[Certus] Output directory: ", CertusOutputDir);
    Print("[Certus] Update interval: ", CertusUpdateSeconds, "s");
 
@@ -42,10 +44,10 @@ int OnInit()
    EventSetTimer(CertusUpdateSeconds);
 
    // Initial portfolio status write
-   CertusLastUpdateTime = TimeCurrent() - CertusUpdateSeconds; // Force immediate write
+   CertusLastUpdateTime = TimeCurrent() - CertusUpdateSeconds;
    CertusUpdatePortfolioStatus();
 
-   Print("[Certus] EA ready. Writing to: ", CertusOutputDir);
+   Print("[Certus] EA ready. Attach to any chart - monitors entire account.");
    return INIT_SUCCEEDED;
 }
 
@@ -71,12 +73,11 @@ void OnTimer()
 //+------------------------------------------------------------------+
 void OnTick()
 {
-   // Check for trade events on every tick
    CertusCheckAndLogTrades();
 }
 
 //+------------------------------------------------------------------+
-//| Trade event handler (called when order状态 changes)              |
+//| Trade transaction handler (primary event source)                 |
 //+------------------------------------------------------------------+
 void OnTradeTransaction(const MqlTradeTransaction &trans,
                         const MqlTradeRequest &request,
@@ -84,47 +85,43 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,
 {
    if(!CertusLogTrades) return;
 
-   // Log trade events
    switch(trans.type)
    {
       case TRADE_TRANSACTION_DEAL_ADD:
-         // New deal executed
+      {
+         string event = CertusBuildTradeEventJSON("close");
+         if(event != "")
          {
-            string event = CertusBuildTradeEventJSON("close");
-            if(event != "")
-            {
-               CertusAppendFile(CertusOutputDir + "/trades.json", event + "\n");
-               if(CertusLogLevel >= 2)
-                  Print("[Certus] Trade logged: deal added");
-            }
+            CertusAppendFile(CertusOutputDir + "/trades.json", event + "\n");
+            if(CertusLogLevel >= 2)
+               Print("[Certus] Trade logged: deal added, ticket=", OrderTicket());
          }
          break;
+      }
 
       case TRADE_TRANSACTION_ORDER_ADD:
-         // New order placed
+      {
+         string event = CertusBuildTradeEventJSON("open");
+         if(event != "")
          {
-            string event = CertusBuildTradeEventJSON("open");
-            if(event != "")
-            {
-               CertusAppendFile(CertusOutputDir + "/trades.json", event + "\n");
-               if(CertusLogLevel >= 2)
-                  Print("[Certus] Trade logged: order added");
-            }
+            CertusAppendFile(CertusOutputDir + "/trades.json", event + "\n");
+            if(CertusLogLevel >= 2)
+               Print("[Certus] Trade logged: order added, ticket=", OrderTicket());
          }
          break;
+      }
 
       case TRADE_TRANSACTION_ORDER_UPDATE:
-         // Order modified (SL/TP change)
+      {
+         string event = CertusBuildTradeEventJSON("modify");
+         if(event != "")
          {
-            string event = CertusBuildTradeEventJSON("modify");
-            if(event != "")
-            {
-               CertusAppendFile(CertusOutputDir + "/trades.json", event + "\n");
-               if(CertusLogLevel >= 2)
-                  Print("[Certus] Trade logged: order modified");
-            }
+            CertusAppendFile(CertusOutputDir + "/trades.json", event + "\n");
+            if(CertusLogLevel >= 2)
+               Print("[Certus] Trade logged: order modified, ticket=", OrderTicket());
          }
          break;
+      }
    }
 }
 
@@ -144,7 +141,7 @@ void CertusUpdatePortfolioStatus()
    {
       CertusLastUpdateTime = now;
       if(CertusLogLevel >= 3)
-         Print("[Certus] Portfolio status updated: ", filename);
+         Print("[Certus] Portfolio status updated");
    }
    else
    {

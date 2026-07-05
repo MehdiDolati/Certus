@@ -1,5 +1,8 @@
 //+------------------------------------------------------------------+
 //| CertusTradeLogger.mqh - Trade event logging to trades.json      |
+//|                                                                    |
+//| Monitors all orders across the account. Logs trade events        |
+//| (open, close, modify) by comparing current state to last state. |
 //+------------------------------------------------------------------+
 #ifndef CERTUS_TRADELOGGER_MQH
 #define CERTUS_TRADELOGGER_MQH
@@ -7,63 +10,77 @@
 #include "CertusConfig.mqh"
 #include "CertusFileWriter.mqh"
 
-//--- Track last known ticket count to detect new trades
-static int CertusLastHistoryCount = 0;
+//--- Track last known order counts
 static int CertusLastOpenCount = 0;
+static int CertusLastHistoryCount = 0;
 
 //+------------------------------------------------------------------+
 //| Initialize trade tracking                                         |
 //+------------------------------------------------------------------+
 void CertusInitTradeTracking()
 {
-   CertusLastHistoryCount = OrdersHistoryTotal();
    CertusLastOpenCount = OrdersTotal();
+   CertusLastHistoryCount = OrdersHistoryTotal();
 }
 
 //+------------------------------------------------------------------+
-//| Check for new trade events and log them                          |
+//| Check for trade events and log them                              |
 //+------------------------------------------------------------------+
 void CertusCheckAndLogTrades()
 {
    if(!CertusLogTrades) return;
 
-   // Check for newly closed trades (moved to history)
-   int currentHistoryCount = OrdersHistoryTotal();
-   if(currentHistoryCount > CertusLastHistoryCount)
+   int currentOpen = OrdersTotal();
+   int currentHistory = OrdersHistoryTotal();
+
+   // Check for new history entries (closed trades)
+   if(currentHistory > CertusLastHistoryCount)
    {
-      // New trades in history - find and log them
-      for(int i = CertusLastHistoryCount; i < currentHistoryCount; i++)
+      // Scan new history entries
+      for(int i = CertusLastHistoryCount; i < currentHistory; i++)
       {
          if(OrderSelect(i, SELECT_BY_POS, MODE_HISTORY))
          {
             string event = CertusBuildTradeEventJSON("close");
             if(event != "")
-               CertusAppendFile("trades.json", event + "\n");
-         }
-      }
-      CertusLastHistoryCount = currentHistoryCount;
-   }
-
-   // Check for new open trades
-   int currentOpenCount = OrdersTotal();
-   if(currentOpenCount > CertusLastOpenCount)
-   {
-      // New open orders detected
-      for(int i = 0; i < currentOpenCount; i++)
-      {
-         if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
-         {
-            // Check if this is a new order we haven't logged
-            if(CertusIsNewOrder(OrderTicket()))
             {
-               string event = CertusBuildTradeEventJSON("open");
-               if(event != "")
-                  CertusAppendFile("trades.json", event + "\n");
+               string filename = CertusOutputDir + "/trades.json";
+               CertusAppendFile(filename, event + "\n");
+               if(CertusLogLevel >= 2)
+                  Print("[Certus] Trade logged: ticket=", OrderTicket(), " event=close");
             }
          }
       }
-      CertusLastOpenCount = currentOpenCount;
    }
+
+   // Check for new open orders
+   if(currentOpen > CertusLastOpenCount)
+   {
+      // Scan current open orders for new ones
+      for(int i = 0; i < currentOpen; i++)
+      {
+         if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+         {
+            // Simple check: if this ticket is higher than what we've seen
+            static int lastLoggedTicket = 0;
+            if(OrderTicket() > lastLoggedTicket)
+            {
+               string event = CertusBuildTradeEventJSON("open");
+               if(event != "")
+               {
+                  string filename = CertusOutputDir + "/trades.json";
+                  CertusAppendFile(filename, event + "\n");
+                  if(CertusLogLevel >= 2)
+                     Print("[Certus] Trade logged: ticket=", OrderTicket(), " event=open");
+                  lastLoggedTicket = OrderTicket();
+               }
+            }
+         }
+      }
+   }
+
+   CertusLastOpenCount = currentOpen;
+   CertusLastHistoryCount = currentHistory;
 }
 
 //+------------------------------------------------------------------+
@@ -74,7 +91,7 @@ string CertusBuildTradeEventJSON(string event)
    string json = "{";
 
    json += "\"id\":\"" + IntegerToString(OrderTicket()) + "\",";
-   json += "\"strategyId\":\"" + CertusGetStrategyIdForOrder() + "\",";
+   json += "\"strategyId\":\"" + IntegerToString(OrderMagicNumber()) + "\",";
    json += "\"symbol\":\"" + OrderSymbol() + "\",";
    json += "\"side\":\"" + (OrderType() == OP_BUY ? "buy" : "sell") + "\",";
    json += "\"volume\":" + DoubleToString(OrderLots(), 2) + ",";
@@ -109,38 +126,6 @@ string CertusBuildTradeEventJSON(string event)
 
    json += "}";
    return json;
-}
-
-//+------------------------------------------------------------------+
-//| Get strategy ID for the current order                            |
-//+------------------------------------------------------------------+
-string CertusGetStrategyIdForOrder()
-{
-   return "EA_" + OrderSymbol() + "_" + CertusPeriodToStringForOrder() + "_" + IntegerToString(AccountNumber());
-}
-
-//+------------------------------------------------------------------+
-//| Get period string for current order's symbol                     |
-//+------------------------------------------------------------------+
-string CertusPeriodToStringForOrder()
-{
-   // For order-based identification, use a fixed identifier
-   return "LIVE";
-}
-
-//+------------------------------------------------------------------+
-//| Check if an order ticket is new (not previously logged)         |
-//+------------------------------------------------------------------+
-bool CertusIsNewOrder(int ticket)
-{
-   // Simple heuristic: check if ticket is recent
-   static int lastCheckedTicket = 0;
-   if(ticket > lastCheckedTicket)
-   {
-      lastCheckedTicket = ticket;
-      return true;
-   }
-   return false;
 }
 
 //+------------------------------------------------------------------+

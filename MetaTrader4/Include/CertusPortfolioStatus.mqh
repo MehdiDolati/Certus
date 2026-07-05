@@ -1,5 +1,8 @@
 //+------------------------------------------------------------------+
 //| CertusPortfolioStatus.mqh - Portfolio status JSON builder        |
+//|                                                                    |
+//| Single EA on any chart - reads ALL orders across the account.    |
+//| Groups orders by magic number to identify different strategies.  |
 //+------------------------------------------------------------------+
 #ifndef CERTUS_PORTFOLIO_STATUS_MQH
 #define CERTUS_PORTFOLIO_STATUS_MQH
@@ -19,7 +22,7 @@ string CertusBuildPortfolioStatusJSON()
    // Portfolio (account info)
    json += "\"portfolio\":{";
    json += "\"id\":\"" + IntegerToString(AccountNumber()) + "\",";
-   json += "\"name\":\"" + AccountName() + "\",";
+   json += "\"name\":\"" + CertusEscapeJson(AccountName()) + "\",";
    json += "\"balance\":" + DoubleToString(AccountBalance(), 2) + ",";
    json += "\"equity\":" + DoubleToString(AccountEquity(), 2) + ",";
    json += "\"margin\":" + DoubleToString(AccountMargin(), 2) + ",";
@@ -27,9 +30,12 @@ string CertusBuildPortfolioStatusJSON()
    json += "\"profit\":" + DoubleToString(AccountProfit(), 2);
    json += "},";
 
-   // Strategies (running EAs)
+   // Strategies (grouped by magic number)
    json += "\"strategies\":[";
-   json += CertusBuildStrategiesArray();
+
+   string strategiesJson = CertusBuildStrategiesFromOrders();
+   json += strategiesJson;
+
    json += "]";
 
    json += "}";
@@ -37,54 +43,66 @@ string CertusBuildPortfolioStatusJSON()
 }
 
 //+------------------------------------------------------------------+
-//| Build strategies array from running EAs                          |
+//| Scan all orders and group by magic number to build strategies    |
 //+------------------------------------------------------------------+
-string CertusBuildStrategiesArray()
+string CertusBuildStrategiesFromOrders()
 {
+   // Collect unique magic numbers and their stats
    string result = "";
-   int count = 0;
+   int magicNumbers[];
+   int magicCounts[];
+   double magicProfits[];
+   datetime magicLastTrade[];
+   string magicNames[];
+   int strategyCount = 0;
 
-   // Enumerate all charts to find running EAs
-   for(int i = ChartsTotal() - 1; i >= 0; i--)
+   // Scan open orders
+   for(int i = 0; i < OrdersTotal(); i++)
    {
-      long chartId = ChartGetInteger(i, CHART_WINDOW_HANDLE);
-      if(chartId == 0) continue;
+      if(!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+         continue;
 
-      string symbol = ChartSymbol(chartId);
-      int timeframe = (int)ChartGetInteger(chartId, CHART_PERIOD);
-
-      // Check if our EA is running on this chart
-      if(CertusIsEAOnChart(chartId))
-      {
-         if(count > 0) result += ",";
-
-         string strategyId = CertusGetStrategyId(chartId);
-         string strategyName = CertusGetStrategyName(chartId);
-         int magicNumber = CertusGetMagicNumber(chartId);
-
-         result += "{";
-         result += "\"id\":\"" + strategyId + "\",";
-         result += "\"name\":\"" + strategyName + "\",";
-         result += "\"active\":true,";
-         result += "\"profit\":" + DoubleToString(CertusGetStrategyProfit(chartId), 2) + ",";
-         result += "\"totalTrades\":" + IntegerToString(CertusGetStrategyTradeCount(chartId)) + ",";
-         result += "\"lastTradeTime\":\"" + CertusGetStrategyLastTradeTime(chartId) + "\"";
-         result += "}";
-
-         count++;
-      }
+      int magic = OrderMagicNumber();
+      CertusAccumulateStrategy(magic, magicNumbers, magicCounts, magicProfits, magicLastTrade, magicNames, strategyCount, false);
    }
 
-   // If no charts found, at least report this EA
-   if(count == 0)
+   // Scan history orders
+   for(int i = 0; i < OrdersHistoryTotal(); i++)
+   {
+      if(!OrderSelect(i, SELECT_BY_POS, MODE_HISTORY))
+         continue;
+
+      int magic = OrderMagicNumber();
+      CertusAccumulateStrategy(magic, magicNumbers, magicCounts, magicProfits, magicLastTrade, magicNames, strategyCount, true);
+   }
+
+   // Build JSON array
+   for(int i = 0; i < strategyCount; i++)
+   {
+      if(i > 0) result += ",";
+
+      bool hasOpenOrders = CertusHasOpenOrders(magicNumbers[i]);
+
+      result += "{";
+      result += "\"id\":\"" + IntegerToString(magicNumbers[i]) + "\",";
+      result += "\"name\":\"" + CertusEscapeJson(magicNames[i]) + "\",";
+      result += "\"active\":" + (hasOpenOrders ? "true" : "false") + ",";
+      result += "\"profit\":" + DoubleToString(magicProfits[i], 2) + ",";
+      result += "\"totalTrades\":" + IntegerToString(magicCounts[i]) + ",";
+      result += "\"lastTradeTime\":\"" + CertusIsoTime(magicLastTrade[i]) + "\"";
+      result += "}";
+   }
+
+   // If no orders found, add a "manual" entry for non-EA activity
+   if(strategyCount == 0)
    {
       result += "{";
-      result += "\"id\":\"" + CertusGetStrategyId(0) + "\",";
-      result += "\"name\":\"" + CertusGetStrategyName(0) + "\",";
-      result += "\"active\":true,";
+      result += "\"id\":\"0\",";
+      result += "\"name\":\"Manual Trading\",";
+      result += "\"active\":" + (OrdersTotal() > 0 ? "true" : "false") + ",";
       result += "\"profit\":" + DoubleToString(AccountProfit(), 2) + ",";
-      result += "\"totalTrades\":" + IntegerToString(CertusGetStrategyTradeCount(0)) + ",";
-      result += "\"lastTradeTime\":\"" + CertusGetStrategyLastTradeTime(0) + "\"";
+      result += "\"totalTrades\":" + IntegerToString(OrdersTotal()) + ",";
+      result += "\"lastTradeTime\":\"" + CertusIsoNow() + "\"";
       result += "}";
    }
 
@@ -92,153 +110,82 @@ string CertusBuildStrategiesArray()
 }
 
 //+------------------------------------------------------------------+
-//| Check if our EA is running on a specific chart                   |
+//| Accumulate stats for a magic number                               |
 //+------------------------------------------------------------------+
-bool CertusIsEAOnChart(long chartId)
+void CertusAccumulateStrategy(int magic, int &magicNumbers[], int &counts[],
+                              double &profits[], datetime &lastTrade[],
+                              string &names[], int &count, bool isHistory)
 {
-   // Check if any EA with our magic number pattern is running
+   // Find existing entry or create new one
+   int idx = -1;
+   for(int i = 0; i < count; i++)
+   {
+      if(magicNumbers[i] == magic)
+      {
+         idx = i;
+         break;
+      }
+   }
+
+   if(idx == -1)
+   {
+      // New magic number - add entry
+      idx = count;
+      count++;
+
+      // Resize arrays
+      ArrayResize(magicNumbers, count);
+      ArrayResize(counts, count);
+      ArrayResize(profits, count);
+      ArrayResize(lastTrade, count);
+      ArrayResize(names, count);
+
+      magicNumbers[idx] = magic;
+      counts[idx] = 0;
+      profits[idx] = 0;
+      lastTrade[idx] = 0;
+      names[idx] = CertusMagicToName(magic);
+   }
+
+   // Accumulate
+   counts[idx]++;
+   profits[idx] += OrderProfit() + OrderSwap() + OrderCommission();
+
+   datetime orderTime = isHistory ? OrderCloseTime() : OrderOpenTime();
+   if(orderTime > lastTrade[idx])
+      lastTrade[idx] = orderTime;
+}
+
+//+------------------------------------------------------------------+
+//| Convert magic number to readable name                            |
+//+------------------------------------------------------------------+
+string CertusMagicToName(int magic)
+{
+   if(magic == 0)
+      return "Manual Trading";
+
+   // Try to identify by magic number range
+   if(magic >= 900000 && magic <= 999999)
+      return "Certus EA";
+
+   // Default: use magic number as identifier
+   return "Strategy_" + IntegerToString(magic);
+}
+
+//+------------------------------------------------------------------+
+//| Check if a magic number has open orders                          |
+//+------------------------------------------------------------------+
+bool CertusHasOpenOrders(int magic)
+{
    for(int i = 0; i < OrdersTotal(); i++)
    {
-      if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
-      {
-         if(OrderMagicNumber() >= 900000 && OrderMagicNumber() <= 999999)
-            return true;
-      }
+      if(!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+         continue;
+
+      if(OrderMagicNumber() == magic)
+         return true;
    }
    return false;
-}
-
-//+------------------------------------------------------------------+
-//| Get strategy identifier for the current EA instance              |
-//+------------------------------------------------------------------+
-string CertusGetStrategyId(long chartId)
-{
-   return "EA_" + Symbol() + "_" + IntegerToString(Period()) + "_" + IntegerToString(AccountNumber());
-}
-
-//+------------------------------------------------------------------+
-//| Get strategy display name                                        |
-//+------------------------------------------------------------------+
-string CertusGetStrategyName(long chartId)
-{
-   return "Certus EA - " + Symbol() + " " + CertusPeriodToString(Period());
-}
-
-//+------------------------------------------------------------------+
-//| Get magic number for this EA instance                            |
-//+------------------------------------------------------------------+
-int CertusGetMagicNumber(long chartId)
-{
-   // Use a deterministic magic number based on symbol and timeframe
-   return 900000 + (SymbolCRC32() % 100000);
-}
-
-//+------------------------------------------------------------------+
-//| Calculate CRC32 of symbol name for unique identification         |
-//+------------------------------------------------------------------+
-int SymbolCRC32()
-{
-   string s = Symbol();
-   int crc = 0;
-   for(int i = 0; i < StringLen(s); i++)
-   {
-      crc += StringGetCharacter(s, i);
-      crc = crc ^ (crc << 13);
-      crc = crc ^ (crc >> 17);
-      crc = crc ^ (crc << 5);
-   }
-   return MathAbs(crc);
-}
-
-//+------------------------------------------------------------------+
-//| Get total profit for this strategy                               |
-//+------------------------------------------------------------------+
-double CertusGetStrategyProfit(long chartId)
-{
-   double profit = 0;
-   int magic = CertusGetMagicNumber(chartId);
-
-   for(int i = 0; i < OrdersTotal(); i++)
-   {
-      if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
-      {
-         if(OrderMagicNumber() == magic)
-            profit += OrderProfit() + OrderSwap() + OrderCommission();
-      }
-   }
-   return profit;
-}
-
-//+------------------------------------------------------------------+
-//| Get trade count for this strategy                                |
-//+------------------------------------------------------------------+
-int CertusGetStrategyTradeCount(long chartId)
-{
-   int count = 0;
-   int magic = CertusGetMagicNumber(chartId);
-
-   // Count open trades
-   for(int i = 0; i < OrdersTotal(); i++)
-   {
-      if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
-      {
-         if(OrderMagicNumber() == magic)
-            count++;
-      }
-   }
-
-   // Count history trades
-   for(int i = 0; i < OrdersHistoryTotal(); i++)
-   {
-      if(OrderSelect(i, SELECT_BY_POS, MODE_HISTORY))
-      {
-         if(OrderMagicNumber() == magic)
-            count++;
-      }
-   }
-
-   return count;
-}
-
-//+------------------------------------------------------------------+
-//| Get last trade time for this strategy                            |
-//+------------------------------------------------------------------+
-string CertusGetStrategyLastTradeTime(long chartId)
-{
-   datetime lastTime = 0;
-   int magic = CertusGetMagicNumber(chartId);
-
-   for(int i = 0; i < OrdersHistoryTotal(); i++)
-   {
-      if(OrderSelect(i, SELECT_BY_POS, MODE_HISTORY))
-      {
-         if(OrderMagicNumber() == magic && OrderCloseTime() > lastTime)
-            lastTime = OrderCloseTime();
-      }
-   }
-
-   if(lastTime == 0) lastTime = TimeCurrent();
-   return CertusIsoTime(lastTime);
-}
-
-//+------------------------------------------------------------------+
-//| Convert period to readable string                                |
-//+------------------------------------------------------------------+
-string CertusPeriodToString(int period)
-{
-   switch(period)
-   {
-      case PERIOD_M1:  return "M1";
-      case PERIOD_M5:  return "M5";
-      case PERIOD_M15: return "M15";
-      case PERIOD_M30: return "M30";
-      case PERIOD_H1:  return "H1";
-      case PERIOD_H4:  return "H4";
-      case PERIOD_D1:  return "D1";
-      case PERIOD_W1:  return "W1";
-      case PERIOD_MN1: return "MN1";
-      default:         return "UNKNOWN";
-   }
 }
 
 #endif
