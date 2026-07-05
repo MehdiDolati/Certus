@@ -29,8 +29,11 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? "Server=localhost;Database=Certus;Trusted_Connection=True;TrustServerCertificate=True";
+
         services.AddDbContext<CertusDbContext>(options =>
-            options.UseSqlite(configuration.GetConnectionString("DefaultConnection") ?? "Data Source=certus.db"));
+            options.UseSqlServer(connectionString));
 
         // Shared
         services.AddScoped<IDomainEventDispatcher, InMemoryDomainEventDispatcher>();

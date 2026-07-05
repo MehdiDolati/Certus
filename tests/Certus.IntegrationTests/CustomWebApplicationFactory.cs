@@ -22,11 +22,18 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
     {
         builder.ConfigureServices(services =>
         {
-            var descriptor = services.SingleOrDefault(
-                d => d.ServiceType == typeof(DbContextOptions<CertusDbContext>));
-            if (descriptor != null)
+            // Remove ALL EF Core database-related services
+            var toRemove = services.Where(d =>
+                d.ServiceType == typeof(DbContextOptions<CertusDbContext>) ||
+                d.ServiceType == typeof(CertusDbContext) ||
+                d.ImplementationType == typeof(CertusDbContext) ||
+                d.ServiceType.FullName?.Contains("EntityFrameworkCore") == true ||
+                d.ServiceType.FullName?.Contains("SqlServer") == true).ToList();
+
+            foreach (var descriptor in toRemove)
                 services.Remove(descriptor);
 
+            // Add SQLite for testing
             services.AddDbContext<CertusDbContext>(options =>
             {
                 options.UseSqlite(_connection!);
