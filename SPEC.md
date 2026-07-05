@@ -15,6 +15,12 @@ This project follows **spec-driven development**. Individual specs live in the `
 | [Module Boundaries](specs/architecture/module-boundaries.md) | `specs/architecture/` | Module isolation, future extraction |
 | [Domain Architecture](specs/architecture/domain-architecture.md) | `specs/architecture/` | 6 bounded contexts, aggregate roots, domain events |
 | [Platform Integration](specs/features/platform-integration.md) | `specs/features/` | Plugin architecture, file-based data import, MT4 EA integration |
+| [Trade Execution](specs/features/trade-execution.md) | `specs/features/` | Trade lifecycle, order management, PnL calculation |
+| [Evaluation & Feedback](specs/features/evaluation-feedback.md) | `specs/features/` | Performance reports, benchmarking, strategy scoring |
+| [Agent Coordination](specs/features/agent-coordination.md) | `specs/features/` | Task management, agent health, coordination cycles |
+| [Market Data](specs/features/market-data.md) | `specs/features/` | Price data, signals, technical indicators |
+| [Backtesting](specs/features/backtesting.md) | `specs/features/` | Strategy simulation, backtest results |
+| [Risk Management](specs/features/risk-management.md) | `specs/features/` | Risk limits, capital allocation, risk assessment |
 
 ## Workflow
 

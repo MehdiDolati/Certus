@@ -62,3 +62,18 @@ Each spec includes a **Test Mapping** table:
 - **Domain layer must have 100% test coverage** — all entities, value objects, domain events, and repository interfaces
 - **Application layer must have 100% test coverage** — all services, DTOs, and request/response types
 - CI pipeline runs coverage checks; PRs that reduce coverage below target are blocked
+
+## Enforcement Checklist
+
+Before starting ANY new feature or modification:
+
+- [ ] Spec exists in `specs/features/` or `specs/domain/`
+- [ ] Spec has acceptance criteria (AC-001, AC-002, ...)
+- [ ] Spec has a test mapping table linking ACs to test methods
+- [ ] Spec has been reviewed (for new features)
+- [ ] Tests are written BEFORE implementation (TDD)
+- [ ] All acceptance criteria have corresponding tests
+- [ ] Implementation makes tests pass
+- [ ] Coverage does not decrease
+
+**No spec, no code. No tests, no merge.**

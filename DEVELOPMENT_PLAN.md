@@ -111,6 +111,43 @@ Certus.slnx
 - **27+ value objects** for type-safe domain modeling
 - All 74 tests passing (26 Domain + 20 Application + 6 Architecture + 20 Integration + 1 Component + 1 Infrastructure)
 
+### Phase 9: Platform Integration
+- Plugin architecture for trading platform adapters
+- MetaTrader 4 plugin with file-based data import
+- FileImportService with FileSystemWatcher for real-time monitoring
+- PlatformService with connect, disconnect, import operations
+- 120 tests covering all 18 acceptance criteria
+
+### Phase 10: Spec-Driven Development Compliance
+- Retroactively wrote specs for Execution, Evaluation, Coordination, Market, Backtesting, Risk Management
+- Updated SPEC.md index with all 15 specs
+- Added enforcement checklist to specs/README.md
+- Policy: "No spec, no code. No tests, no merge."
+
+---
+
+## Spec-Driven Development Policy
+
+### Workflow (MANDATORY)
+
+```
+Spec → Acceptance Criteria → Tests → Implementation → Refactor
+```
+
+1. **Write Spec**: Create `specs/features/xxx.md` with requirements, data models, business rules, acceptance criteria
+2. **Write Tests**: Convert each AC to test methods BEFORE writing implementation code
+3. **Implement**: Write code to make tests pass (TDD)
+4. **Refactor**: Clean up while keeping tests green
+5. **Verify**: Run `dotnet test` — all must pass
+
+### Enforcement Rules
+
+- **No spec, no code**: Every feature must have a spec before implementation begins
+- **No tests, no merge**: PRs without corresponding tests for all acceptance criteria are rejected
+- **Spec-first for new code**: Even if existing code was written without specs, all NEW code must follow the workflow
+- **Coverage targets**: Domain 100%, Application 100%, Infrastructure 100%
+- **PR requirement**: PR title must reference the spec file (e.g., "feat(trade): implement order lifecycle per trade-execution.md")
+
 ---
 
 ## Spec-Driven Development
