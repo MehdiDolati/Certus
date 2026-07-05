@@ -33,58 +33,23 @@ Written periodically (every N seconds). Overwrites previous content.
 ```json
 {
   "timestamp": "2026-07-05T10:30:00Z",
-  "account": {
-    "number": 12345,
+  "portfolio": {
+    "id": "12345",
     "name": "Mehdi Dolati",
-    "company": "MetaQuotes",
-    "server": "MetaQuotes-Demo",
     "balance": 100000.00,
     "equity": 102500.00,
     "margin": 15000.00,
-    "free_margin": 87500.00,
-    "profit": 2500.00,
-    "leverage": 100,
-    "currency": "USD"
+    "freeMargin": 87500.00,
+    "profit": 2500.00
   },
   "strategies": [
     {
       "id": "EA_Momentum_01",
       "name": "Momentum Strategy",
-      "chart_symbol": "EURUSD",
-      "chart_timeframe": "H1",
       "active": true,
-      "magic_number": 123456,
-      "parameters": {
-        "lookback_period": 20,
-        "entry_threshold": 0.7,
-        "lot_size": 0.1
-      },
-      "open_positions": [
-        {
-          "ticket": 789012,
-          "symbol": "EURUSD",
-          "type": "buy",
-          "volume": 0.10,
-          "open_price": 1.0850,
-          "current_price": 1.0875,
-          "stop_loss": 1.0830,
-          "take_profit": 1.0900,
-          "profit": 25.00,
-          "open_time": "2026-07-05T09:15:00Z",
-          "comment": "Momentum signal"
-        }
-      ],
-      "stats": {
-        "total_trades": 45,
-        "winning_trades": 30,
-        "losing_trades": 15,
-        "total_profit": 1800.00,
-        "total_loss": -500.00,
-        "win_rate": 0.667,
-        "profit_factor": 3.6,
-        "max_drawdown": 5.2,
-        "last_trade_time": "2026-07-05T10:25:00Z"
-      }
+      "profit": 1800.00,
+      "totalTrades": 45,
+      "lastTradeTime": "2026-07-05T10:25:00Z"
     }
   ]
 }
@@ -99,23 +64,21 @@ Append-only log. Each trade event adds a new entry.
   "timestamp": "2026-07-05T10:30:00Z",
   "trades": [
     {
-      "ticket": 789012,
-      "strategy_id": "EA_Momentum_01",
-      "magic_number": 123456,
+      "id": "789012",
+      "strategyId": "EA_Momentum_01",
       "symbol": "EURUSD",
-      "type": "buy",
+      "side": "buy",
       "volume": 0.10,
-      "open_price": 1.0850,
-      "close_price": 1.0875,
-      "stop_loss": 1.0830,
-      "take_profit": 1.0900,
+      "openPrice": 1.0850,
+      "closePrice": 1.0875,
+      "stopLoss": 1.0830,
+      "takeProfit": 1.0900,
       "profit": 25.00,
       "commission": -1.50,
       "swap": -0.25,
-      "open_time": "2026-07-05T09:15:00Z",
-      "close_time": "2026-07-05T10:25:00Z",
-      "comment": "Momentum signal",
-      "event": "close"
+      "openTime": "2026-07-05T09:15:00Z",
+      "closeTime": "2026-07-05T10:25:00Z",
+      "comment": "Momentum signal"
     }
   ]
 }
