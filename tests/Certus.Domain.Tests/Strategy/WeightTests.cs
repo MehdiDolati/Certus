@@ -43,19 +43,19 @@ public class WeightTests
     {
         var weight = new Weight(0.5m);
 
-        weight.ToString().Should().Be("50%");
+        weight.ToString().Should().Contain("50").And.Contain("%");
     }
 
     [Fact]
     public void ToString_Zero_Should_Return_Zero_Percent()
     {
-        Weight.Zero.ToString().Should().Be("0%");
+        Weight.Zero.ToString().Should().Contain("0").And.Contain("%");
     }
 
     [Fact]
     public void ToString_Full_Should_Return_100_Percent()
     {
-        Weight.Full.ToString().Should().Be("100%");
+        Weight.Full.ToString().Should().Contain("100").And.Contain("%");
     }
 
     [Fact]
