@@ -1,22 +1,22 @@
 # MetaTrader 4 Expert Advisor
 
 ## Status
-Draft
+Active
 
 ## Overview
-The Certus EA is a MetaTrader 4 Expert Advisor that runs on each chart, collects strategy data (portfolio status, open positions, trade history), and writes it to shared JSON files that Certus reads via FileSystemWatcher.
+The Certus EA is a **single MetaTrader 4 Expert Advisor** that runs on any one chart and monitors ALL trading activity across the entire account. It reads all orders via `OrderSelect` (MODE_TRADES and MODE_HISTORY), groups them by magic number to identify strategies, and writes the data to shared JSON files that Certus reads via FileSystemWatcher.
 
-The EA is **read-only from Certus's perspective** — Certus never modifies EA files. The EA owns the files; Certus only reads them.
+**Key design decision:** The EA does NOT need to be attached to every chart. One instance on any chart monitors everything — EAs, manual trades, all symbols and timeframes.
 
 ## Requirements
 
 ### Functional Requirements
-- [ ] FR-001: Write portfolio status (balance, equity, margin, profit) to `portfolio_status.json` at configurable intervals
-- [ ] FR-002: Write strategy information (name, active status, parameters, open positions, PnL stats) within portfolio status
-- [ ] FR-003: Log individual trades to `trades.json` immediately when they occur (open, close, modify)
-- [ ] FR-004: Track all running EAs on the account and include their status in portfolio_status.json
+- [ ] FR-001: Single EA instance on any chart monitors ALL account activity
+- [ ] FR-002: Write portfolio status (balance, equity, margin, profit) to `portfolio_status.json` at configurable intervals
+- [ ] FR-003: Group orders by magic number to identify different strategies/EAs
+- [ ] FR-004: Log individual trades to `trades.json` immediately when they occur (open, close, modify)
 - [ ] FR-005: Handle file locking gracefully — use temporary files and atomic rename
-- [ ] FR-006: Support multiple EAs writing to the same file (last-write-wins for status, append for trades)
+- [ ] FR-006: Track both EAs and manual trading (magic number 0 = manual)
 
 ### Non-Functional Requirements
 - [ ] NFR-001: Portfolio status update interval is configurable (default: 5 seconds)
@@ -33,58 +33,23 @@ Written periodically (every N seconds). Overwrites previous content.
 ```json
 {
   "timestamp": "2026-07-05T10:30:00Z",
-  "account": {
-    "number": 12345,
+  "portfolio": {
+    "id": "12345",
     "name": "Mehdi Dolati",
-    "company": "MetaQuotes",
-    "server": "MetaQuotes-Demo",
     "balance": 100000.00,
     "equity": 102500.00,
     "margin": 15000.00,
-    "free_margin": 87500.00,
-    "profit": 2500.00,
-    "leverage": 100,
-    "currency": "USD"
+    "freeMargin": 87500.00,
+    "profit": 2500.00
   },
   "strategies": [
     {
       "id": "EA_Momentum_01",
       "name": "Momentum Strategy",
-      "chart_symbol": "EURUSD",
-      "chart_timeframe": "H1",
       "active": true,
-      "magic_number": 123456,
-      "parameters": {
-        "lookback_period": 20,
-        "entry_threshold": 0.7,
-        "lot_size": 0.1
-      },
-      "open_positions": [
-        {
-          "ticket": 789012,
-          "symbol": "EURUSD",
-          "type": "buy",
-          "volume": 0.10,
-          "open_price": 1.0850,
-          "current_price": 1.0875,
-          "stop_loss": 1.0830,
-          "take_profit": 1.0900,
-          "profit": 25.00,
-          "open_time": "2026-07-05T09:15:00Z",
-          "comment": "Momentum signal"
-        }
-      ],
-      "stats": {
-        "total_trades": 45,
-        "winning_trades": 30,
-        "losing_trades": 15,
-        "total_profit": 1800.00,
-        "total_loss": -500.00,
-        "win_rate": 0.667,
-        "profit_factor": 3.6,
-        "max_drawdown": 5.2,
-        "last_trade_time": "2026-07-05T10:25:00Z"
-      }
+      "profit": 1800.00,
+      "totalTrades": 45,
+      "lastTradeTime": "2026-07-05T10:25:00Z"
     }
   ]
 }
@@ -99,23 +64,21 @@ Append-only log. Each trade event adds a new entry.
   "timestamp": "2026-07-05T10:30:00Z",
   "trades": [
     {
-      "ticket": 789012,
-      "strategy_id": "EA_Momentum_01",
-      "magic_number": 123456,
+      "id": "789012",
+      "strategyId": "EA_Momentum_01",
       "symbol": "EURUSD",
-      "type": "buy",
+      "side": "buy",
       "volume": 0.10,
-      "open_price": 1.0850,
-      "close_price": 1.0875,
-      "stop_loss": 1.0830,
-      "take_profit": 1.0900,
+      "openPrice": 1.0850,
+      "closePrice": 1.0875,
+      "stopLoss": 1.0830,
+      "takeProfit": 1.0900,
       "profit": 25.00,
       "commission": -1.50,
       "swap": -0.25,
-      "open_time": "2026-07-05T09:15:00Z",
-      "close_time": "2026-07-05T10:25:00Z",
-      "comment": "Momentum signal",
-      "event": "close"
+      "openTime": "2026-07-05T09:15:00Z",
+      "closeTime": "2026-07-05T10:25:00Z",
+      "comment": "Momentum signal"
     }
   ]
 }
@@ -195,31 +158,30 @@ WriteFileAtomic(filePath, content)
 2. **BR-002**: portfolio_status.json is overwritten each update cycle (latest state)
 3. **BR-003**: trades.json is append-only (never overwritten)
 4. **BR-004**: File writes must be atomic to prevent Certus reading partial JSON
-5. **BR-005**: Each EA instance identifies itself by magic number
-6. **BR-006**: Multiple EAs can write to the same files (last-write-wins for status)
+5. **BR-005**: Magic number 0 = manual trading, non-zero = EA/strategy
+6. **BR-006**: Single EA instance on any chart monitors entire account
 
 ## Acceptance Criteria
 
 ### Portfolio Status
-- [ ] AC-001: Given the EA running, when UpdateIntervalSeconds elapses, then portfolio_status.json contains current account data
-- [ ] AC-002: Given the EA with open positions, when writing portfolio_status.json, then open_positions array contains all current positions
-- [ ] AC-003: Given multiple EAs running, when writing portfolio_status.json, then all EA strategies are included in the strategies array
-- [ ] AC-004: Given strategy parameters configured in MT4, when writing portfolio_status.json, then parameters object contains all input parameters
+- [ ] AC-001: Given the EA running on one chart, when writing portfolio_status.json, then it contains account data (balance, equity, margin, profit)
+- [ ] AC-002: Given multiple EAs running on different charts, when writing portfolio_status.json, then all are listed as strategies grouped by magic number
+- [ ] AC-003: Given manual trades (magic number 0), when writing portfolio_status.json, then they appear as "Manual Trading" strategy
+- [ ] AC-004: Given a strategy with open orders, when checking active status, then it shows as active
 
 ### Trade Logging
-- [ ] AC-005: Given a trade opened by the EA, when OrderSend succeeds, then trades.json contains an "open" event
-- [ ] AC-006: Given a trade closed by the EA, when OrderClose succeeds, then trades.json contains a "close" event with close_price and profit
-- [ ] AC-007: Given a trade modified (SL/TP changed), when OrderModify succeeds, then trades.json contains a "modify" event
+- [ ] AC-005: Given a trade opened on any chart, when OnTradeTransaction fires, then trades.json contains an "open" event
+- [ ] AC-006: Given a trade closed, when OnTradeTransaction fires, then trades.json contains a "close" event with close_price and profit
+- [ ] AC-007: Given a trade modified (SL/TP changed), when OnTradeTransaction fires, then trades.json contains a "modify" event
 - [ ] AC-008: Given trades.json already has content, when a new trade occurs, then the new trade is appended without losing existing data
 
 ### File Handling
 - [ ] AC-009: Given Certus reading portfolio_status.json while EA is writing, then Certus reads a valid complete JSON (atomic write)
 - [ ] AC-010: Given the EA writing to a non-existent directory, when writing, then the directory is created automatically
-- [ ] AC-011: Given MT4 terminal restarts, when EA loads, then it resumes writing files from the same directory
 
 ### Error Handling
-- [ ] AC-012: Given a file write failure, when retrying, then the EA retries up to 3 times before logging an error
-- [ ] AC-013: Given an EA removed from a chart, when OnDeinit runs, then no partial files are left behind
+- [ ] AC-011: Given a file write failure, when retrying, then the EA retries up to 3 times before logging an error
+- [ ] AC-012: Given an EA removed from a chart, when OnDeinit runs, then no partial files are left behind
 
 ## Test Mapping
 
