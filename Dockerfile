@@ -15,17 +15,10 @@ RUN dotnet publish src/Certus.Dashboard/Certus.Dashboard.csproj -c Release -o /a
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-# Install SQLite runtime
-RUN apt-get update && apt-get install -y sqlite3 && rm -rf /var/lib/apt/lists/*
-
 # Copy published output
 COPY --from=build /app/publish .
 
-# Create directory for SQLite data volume
-RUN mkdir -p /data
-
 ENV ASPNETCORE_URLS=http://+:8080
-ENV ConnectionStrings__DefaultConnection="Data Source=/data/certus.db"
 
 EXPOSE 8080
 
