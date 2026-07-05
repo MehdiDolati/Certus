@@ -2,7 +2,8 @@ namespace Certus.Domain.RiskAndPortfolio.Enums;
 
 public enum PortfolioStatus
 {
-    Active = 0,
-    Paused = 1,
-    Closed = 2
+    Draft = 0,
+    Active = 1,
+    Paused = 2,
+    Closed = 3
 }

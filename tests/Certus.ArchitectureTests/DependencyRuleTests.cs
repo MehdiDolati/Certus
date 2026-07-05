@@ -73,10 +73,15 @@ public class DependencyRuleTests
     public void Infrastructure_Should_Implement_Domain_Interfaces()
     {
         var result = Types.InAssembly(InfrastructureAssembly)
+            .That()
+            .DoNotHaveNameMatching("<>*") // Exclude compiler-generated anonymous types
+            .And().DoNotHaveNameEndingWith("Data") // Exclude internal serialization DTOs
+            .And().DoNotHaveNameEndingWith("Info") // Exclude internal serialization DTOs
             .Should()
             .HaveDependencyOn("Certus.Domain")
-            .GetResult();
+           .GetResult();
 
-        result.IsSuccessful.Should().BeTrue("Infrastructure should reference Domain");
+        result.IsSuccessful.Should().BeTrue(
+            $"Infrastructure should reference Domain. Types without dependency: {string.Join(", ", result.FailingTypeNames ?? [])}");
     }
 }
