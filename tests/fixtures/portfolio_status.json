@@ -1,0 +1,30 @@
+{
+  "timestamp": "2026-07-05T10:30:00Z",
+  "portfolio": {
+    "id": "12345",
+    "name": "Mehdi Dolati",
+    "balance": 100000.00,
+    "equity": 102500.00,
+    "margin": 15000.00,
+    "freeMargin": 87500.00,
+    "profit": 2500.00
+  },
+  "strategies": [
+    {
+      "id": "EA_Momentum_01",
+      "name": "Momentum Strategy",
+      "active": true,
+      "profit": 1800.00,
+      "totalTrades": 45,
+      "lastTradeTime": "2026-07-05T10:25:00Z"
+    },
+    {
+      "id": "EA_MeanRev_02",
+      "name": "Mean Reversion",
+      "active": true,
+      "profit": 700.00,
+      "totalTrades": 32,
+      "lastTradeTime": "2026-07-05T10:28:00Z"
+    }
+  ]
+}

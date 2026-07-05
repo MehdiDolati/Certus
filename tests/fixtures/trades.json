@@ -1,0 +1,56 @@
+{
+  "timestamp": "2026-07-05T10:30:00Z",
+  "trades": [
+    {
+      "id": "789012",
+      "strategyId": "EA_Momentum_01",
+      "symbol": "EURUSD",
+      "side": "buy",
+      "volume": 0.10,
+      "openPrice": 1.0850,
+      "closePrice": 1.0875,
+      "stopLoss": 1.0830,
+      "takeProfit": 1.0900,
+      "profit": 25.00,
+      "commission": -1.50,
+      "swap": -0.25,
+      "openTime": "2026-07-05T09:15:00Z",
+      "closeTime": "2026-07-05T10:25:00Z",
+      "comment": "Momentum signal"
+    },
+    {
+      "id": "789013",
+      "strategyId": "EA_Momentum_01",
+      "symbol": "EURUSD",
+      "side": "sell",
+      "volume": 0.05,
+      "openPrice": 1.0920,
+      "closePrice": null,
+      "stopLoss": 1.0950,
+      "takeProfit": 1.0880,
+      "profit": -10.00,
+      "commission": -0.75,
+      "swap": 0.00,
+      "openTime": "2026-07-05T10:28:00Z",
+      "closeTime": null,
+      "comment": "Counter-trend"
+    },
+    {
+      "id": "789014",
+      "strategyId": "EA_MeanRev_02",
+      "symbol": "GBPUSD",
+      "side": "buy",
+      "volume": 0.20,
+      "openPrice": 1.2750,
+      "closePrice": 1.2780,
+      "stopLoss": 1.2720,
+      "takeProfit": 1.2800,
+      "profit": 60.00,
+      "commission": -2.00,
+      "swap": -0.50,
+      "openTime": "2026-07-05T08:00:00Z",
+      "closeTime": "2026-07-05T10:28:00Z",
+      "comment": "RSI oversold"
+    }
+  ]
+}
