@@ -1,0 +1,33 @@
+<MudPaper Class="pa-4" Style="background: #1e293b; border-radius: 12px;">
+    @if (IsLoading)
+    {
+        <MudSkeleton Animation="Animation.Wave" Width="80px" Height="14px" Class="mb-2" />
+        <MudSkeleton Animation="Animation.Wave" Width="120px" Height="28px" />
+    }
+    else
+    {
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <MudIcon Icon="@Icon" Size="Size.Small" Style="color: #94a3b8;" />
+            <MudText Typo="Typo.caption" Style="color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500;">@Label</MudText>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+            <MudText Typo="Typo.h5" Style="color: white; font-weight: 700; font-family: monospace;">@Value</MudText>
+            @if (Trend != 0)
+            {
+                var trendColor = Trend > 0 ? "#22c55e" : "#ef4444";
+                var trendPrefix = Trend > 0 ? "+" : "";
+                <MudText Typo="Typo.caption" Style="@($"color: {trendColor}; font-weight: 500;")">
+                    @trendPrefix@Trend.ToString("P1")
+                </MudText>
+            }
+        </div>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public string Label { get; set; } = string.Empty;
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public string Icon { get; set; } = Icons.Material.Filled.AttachMoney;
+    [Parameter] public decimal Trend { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+}

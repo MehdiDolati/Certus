@@ -1,0 +1,76 @@
+<MudDialog @bind-Visible="Visible" Options="new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true }">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color: white;">@(IsEdit ? "Edit Strategy" : "Create Strategy")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="Model.Name" Label="Name" Variant="Variant.Outlined" Required="true"
+                              Error="@(!string.IsNullOrEmpty(_nameError))" ErrorText="@_nameError" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="Model.Type" Label="Type" Variant="Variant.Outlined"
+                              Placeholder="e.g. Momentum, MeanReversion, Arbitrage" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudNumericField @bind-Value="Model.TargetReturn" Label="Target Return (%)" Variant="Variant.Outlined"
+                                 Adornment="Adornment.End" AdornmentText="%" Min="0m" Max="100m" Step="0.5m" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudNumericField @bind-Value="Model.Weight" Label="Weight" Variant="Variant.Outlined"
+                                 Min="0m" Max="1m" Step="0.05m"
+                                 Error="@(!string.IsNullOrEmpty(_weightError))" ErrorText="@_weightError" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
+                   Disabled="@_submitting">
+            @if (_submitting) { <MudProgressCircular Size="Size.Small" Indeterminate="true" /> }
+            else { @(IsEdit ? "Save" : "Create") }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
+    [Parameter] public bool IsEdit { get; set; }
+    [Parameter] public StrategyFormModel Model { get; set; } = new();
+    [Parameter] public EventCallback<StrategyFormModel> OnSubmit { get; set; }
+
+    private bool _submitting;
+    private string? _nameError;
+    private string? _weightError;
+
+    private async Task Submit()
+    {
+        _nameError = string.IsNullOrWhiteSpace(Model.Name) ? "Name is required" : null;
+        _weightError = Model.Weight < 0m || Model.Weight > 1m ? "Weight must be 0.0 - 1.0" : null;
+        if (_nameError is not null || _weightError is not null) return;
+
+        _submitting = true;
+        StateHasChanged();
+
+        await OnSubmit.InvokeAsync(Model);
+
+        _submitting = false;
+        Visible = false;
+        await VisibleChanged.InvokeAsync(false);
+    }
+
+    private async Task Cancel()
+    {
+        Visible = false;
+        await VisibleChanged.InvokeAsync(false);
+    }
+
+    public class StrategyFormModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public decimal TargetReturn { get; set; }
+        public decimal Weight { get; set; }
+    }
+}

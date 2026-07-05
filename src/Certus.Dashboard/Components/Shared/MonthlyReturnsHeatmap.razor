@@ -1,0 +1,51 @@
+@if (MonthlyReturns?.Any() == true)
+{
+    <MudPaper Class="pa-4" Style="background: #1e293b; border-radius: 12px; overflow-x: auto;">
+        <MudText Typo="Typo.h6" Class="mb-4" Style="color: white;">Monthly Returns</MudText>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <thead>
+                <tr>
+                    <th style="padding: 6px 8px; color: #94a3b8; text-align: left;">Year</th>
+                    @foreach (var month in new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" })
+                    {
+                        <th style="padding: 6px 8px; color: #94a3b8; text-align: center;">@month</th>
+                    }
+                    <th style="padding: 6px 8px; color: #94a3b8; text-align: center;">YTD</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var year in MonthlyReturns.GroupBy(m => m.Year).OrderByDescending(g => g.Key))
+                {
+                    <tr>
+                        <td style="padding: 6px 8px; color: white; font-weight: 600;">@year.Key</td>
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            var ret = year.FirstOrDefault(x => x.Month == m);
+                            var color = GetHeatmapColor(ret?.ReturnPercent ?? 0);
+                            <td style="padding: 6px 8px; text-align: center; background: @color; color: white; border-radius: 4px; font-weight: 500;">
+                                @((ret?.ReturnPercent ?? 0).ToString("P1"))
+                            </td>
+                        }
+                        <td style="padding: 6px 8px; text-align: center; color: white; font-weight: 700;">
+                            @year.Sum(x => x.ReturnPercent).ToString("P1")
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public List<MonthlyReturnDto>? MonthlyReturns { get; set; }
+
+    private string GetHeatmapColor(decimal returnPct) => returnPct switch
+    {
+        < -5m => "#dc2626",
+        < -2m => "#ef4444",
+        < 0m => "#fca5a5",
+        < 2m => "#86efac",
+        < 5m => "#22c55e",
+        _ => "#16a34a"
+    };
+}

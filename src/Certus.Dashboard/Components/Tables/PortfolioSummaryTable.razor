@@ -1,0 +1,74 @@
+@using Certus.Dashboard.Components.Shared
+
+<MudTable T="PortfolioDto" Items="@Portfolios" Hover="true" Dense="true"
+          OnRowClick="@OnRowClick"
+          Style="background: #1e293b; border-radius: 12px;">
+    <HeaderContent>
+        <MudTh Style="color: #94a3b8;">Portfolio</MudTh>
+        <MudTh Style="color: #94a3b8;">Actual</MudTh>
+        <MudTh Style="color: #94a3b8;">Supposed</MudTh>
+        <MudTh Style="color: #94a3b8;">Variance</MudTh>
+        <MudTh Style="color: #94a3b8;">Sharpe</MudTh>
+        <MudTh Style="color: #94a3b8;">Max DD</MudTh>
+        <MudTh Style="color: #94a3b8;">Trades</MudTh>
+        <MudTh Style="color: #94a3b8;"></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Portfolio">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <MudText Style="color: white; font-weight: 500;">@context.Name</MudText>
+                <StatusBadge PortfolioStatus="@context.Status" />
+            </div>
+        </MudTd>
+        <MudTd DataLabel="Actual">
+            <span style="color: @(context.ActualReturn >= 0 ? "#22c55e" : "#ef4444"); font-weight: 600; font-family: monospace;">
+                @context.ActualReturn.ToString("P1")
+            </span>
+        </MudTd>
+        <MudTd DataLabel="Supposed">
+            <span style="color: #94a3b8; font-family: monospace;">@context.SupposedReturn.ToString("P1")</span>
+        </MudTd>
+        <MudTd DataLabel="Variance">
+            <span style="color: @(context.Variance >= 0 ? "#22c55e" : "#ef4444"); font-weight: 600; font-family: monospace;">
+                @(context.Variance >= 0 ? "+" : "")@context.Variance.ToString("P1")
+            </span>
+        </MudTd>
+        <MudTd DataLabel="Sharpe">
+            <span style="color: white; font-family: monospace;">@context.Sharpe.ToString("N2")</span>
+        </MudTd>
+        <MudTd DataLabel="Max DD">
+            <span style="color: #ef4444; font-family: monospace;">@context.MaxDrawdown.ToString("P1")</span>
+        </MudTd>
+        <MudTd DataLabel="Trades">
+            <span style="color: #94a3b8;">@context.TradeCount</span>
+        </MudTd>
+        <MudTd>
+            <div style="display: flex; gap: 4px;">
+                <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                               Style="color: #94a3b8;"
+                               OnClick="@(() => OnViewReport.InvokeAsync(context.Id))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                               Style="color: #3b82f6;"
+                               OnClick="@(() => OnEdit.InvokeAsync(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                               Style="color: #ef4444;"
+                               OnClick="@(() => OnDelete.InvokeAsync(context.Id))" />
+            </div>
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Style="color: #94a3b8; padding: 16px;">No portfolios found.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    [Parameter] public List<PortfolioDto> Portfolios { get; set; } = [];
+    [Parameter] public EventCallback<Guid> OnViewReport { get; set; }
+    [Parameter] public EventCallback<PortfolioDto> OnEdit { get; set; }
+    [Parameter] public EventCallback<Guid> OnDelete { get; set; }
+
+    private void OnRowClick(TableRowClickEventArgs<PortfolioDto> args)
+    {
+        OnViewReport.InvokeAsync(args.Item.Id);
+    }
+}

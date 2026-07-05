@@ -1,0 +1,315 @@
+@page "/portfolios/{Id:guid}"
+@using Certus.Dashboard.Components.Shared
+@using Certus.Dashboard.Components.Tables
+@using Certus.Dashboard.Components.Charts
+@inject IPortfolioService PortfolioService
+@inject IStrategyService StrategyService
+@inject ITradeService TradeService
+@inject NavigationManager Nav
+
+<PageTitle>@(_detail?.Summary.Name ?? "Portfolio") - Certus</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="pa-6">
+    @if (_loading)
+    {
+        <MudSkeleton Animation="Animation.Wave" Height="40px" Width="300px" Class="mb-4" />
+        <MudGrid Class="mb-6">
+            @for (int i = 0; i < 6; i++)
+            {
+                <MudItem xs="12" sm="6" md="2">
+                    <MudSkeleton Animation="Animation.Wave" Height="90px" />
+                </MudItem>
+            }
+        </MudGrid>
+    }
+    else if (_detail == null)
+    {
+        <MudPaper Class="pa-12" Style="background: #1e293b; border-radius: 12px; text-align: center;">
+            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Large" Style="color: #ef4444;" />
+            <MudText Typo="Typo.h6" Class="mt-4" Style="color: #94a3b8;">Portfolio not found</MudText>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-4"
+                       OnClick="GoBack">Back to Dashboard</MudButton>
+        </MudPaper>
+    }
+    else
+    {
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Style="color: #94a3b8;"
+                           OnClick="GoBack" />
+            <div style="flex: 1;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <MudText Typo="Typo.h4" Style="color: white; font-weight: 700;">@_detail.Summary.Name</MudText>
+                    <StatusBadge PortfolioStatus="@_detail.Summary.Status" />
+                </div>
+                <MudText Typo="Typo.body2" Style="color: #94a3b8;">
+                    @_detail.Strategies.Count strategies in portfolio
+                </MudText>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                           OnClick="OpenEditPortfolioDialog">Edit</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                           OnClick="DeletePortfolio">Delete</MudButton>
+            </div>
+        </div>
+
+        <MudGrid Class="mb-6">
+            <MudItem xs="12" sm="6" md="3">
+                <KpiCard Label="Actual Return" Value="@_detail.Summary.ActualReturn.ToString("P1")"
+                         Icon="@Icons.Material.Filled.TrendingUp" IsLoading="false" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <KpiCard Label="Supposed Return" Value="@_detail.Summary.SupposedReturn.ToString("P1")"
+                         Icon="@Icons.Material.Filled.Flag" IsLoading="false" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <KpiCard Label="Sharpe" Value="@_detail.Summary.Sharpe.ToString("N2")"
+                         Icon="@Icons.Material.Filled.Speed" IsLoading="false" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <KpiCard Label="Max Drawdown" Value="@_detail.Summary.MaxDrawdown.ToString("P1")"
+                         Icon="@Icons.Material.Filled.TrendingDown" IsLoading="false" />
+            </MudItem>
+        </MudGrid>
+
+        <MudTabs ActiveIndexChanged="OnTabChanged"
+                 Style="background: #1e293b; border-radius: 12px;">
+            <MudTabPanel Text="Overview">
+                <div class="pa-4">
+                    <EquityCurveChart Data="@_detail.EquityCurve" />
+                    <div style="height: 24px;"></div>
+                    <DrawdownChart Data="@_detail.DrawdownCurve" />
+                    <div style="height: 24px;"></div>
+                    <MonthlyReturnsHeatmap MonthlyReturns="@_detail.MonthlyReturns" />
+                </div>
+            </MudTabPanel>
+            <MudTabPanel Text="Strategies">
+                <div class="pa-4">
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
+                        <MudTooltip Text="@(_detail.Summary.Status == Certus.Domain.RiskAndPortfolio.Enums.PortfolioStatus.Active ? "Add a new strategy" : "Portfolio must be Active to add strategies")">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Add"
+                                       Disabled="@(_detail.Summary.Status != Certus.Domain.RiskAndPortfolio.Enums.PortfolioStatus.Active)"
+                                       OnClick="OpenCreateStrategyDialog">New Strategy</MudButton>
+                        </MudTooltip>
+                    </div>
+                    <StrategyPerformanceTable Strategies="@_detail.Strategies"
+                                              OnEdit="OpenEditStrategyDialog" OnDelete="DeleteStrategy" />
+                    <div style="height: 24px;"></div>
+                    <StrategyPnlStackedChart Strategies="@_strategyPnlPoints" />
+                </div>
+            </MudTabPanel>
+            <MudTabPanel Text="Trades">
+                <div class="pa-4">
+                    <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+                        <MudSelect T="Guid?" @bind-Value="TradeStrategyFilter" Label="Strategy" Variant="Variant.Outlined"
+                                   Clearable="true" Style="min-width: 160px;">
+                            @foreach (var s in _detail.Strategies)
+                            {
+                                <MudSelectItem T="Guid?" Value="@((Guid?)s.Id)">@s.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudSelect T="TradeSide?" @bind-Value="TradeSideFilter" Label="Side" Variant="Variant.Outlined"
+                                   Clearable="true" Style="min-width: 120px;">
+                            <MudSelectItem T="TradeSide?" Value="@(TradeSide.Long)">Long</MudSelectItem>
+                            <MudSelectItem T="TradeSide?" Value="@(TradeSide.Short)">Short</MudSelectItem>
+                        </MudSelect>
+                        <MudTextField @bind-Value="TradeSearchQuery" Label="Search" Variant="Variant.Outlined"
+                                      Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search"
+                                      Style="max-width: 200px;" />
+                    </div>
+                    <TradeLogTable Trades="@_trades" OnTradeSelected="@OnTradeSelected" />
+                    <div style="height: 24px;"></div>
+                    <CumulativePnlChart Data="@_cumulativePnlData" />
+                </div>
+            </MudTabPanel>
+        </MudTabs>
+
+        <TradeDetailModal Trade="@_selectedTradeDetail" @bind-Visible="@_modalVisible" />
+
+        <PortfolioFormDialog @bind-Visible="_editPortfolioDialogVisible" IsEdit="true"
+                             Model="_editPortfolioModel" OnSubmit="HandleEditPortfolio" />
+        <StrategyFormDialog @bind-Visible="_createStrategyDialogVisible" IsEdit="false"
+                            Model="_createStrategyModel" OnSubmit="HandleCreateStrategy" />
+        <StrategyFormDialog @bind-Visible="_editStrategyDialogVisible" IsEdit="true"
+                            Model="_editStrategyModel" OnSubmit="HandleEditStrategy" />
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private bool _loading = true;
+    private PortfolioDetailDto? _detail;
+    private List<TradeDto> _trades = [];
+    private List<PerformanceSnapshotDto> _cumulativePnlData = [];
+    private List<StrategyPnlStackedChart.StrategyPnlPoint> _strategyPnlPoints = [];
+    private TradeDetailDto? _selectedTradeDetail;
+    private bool _modalVisible;
+    private int _activeTab;
+
+    private Guid? _tradeStrategyFilter;
+    private Guid? TradeStrategyFilter
+    {
+        get => _tradeStrategyFilter;
+        set { _tradeStrategyFilter = value; _ = LoadTrades(); }
+    }
+
+    private TradeSide? _tradeSideFilter;
+    private TradeSide? TradeSideFilter
+    {
+        get => _tradeSideFilter;
+        set { _tradeSideFilter = value; _ = LoadTrades(); }
+    }
+
+    private string? _tradeSearchQuery;
+    private string? TradeSearchQuery
+    {
+        get => _tradeSearchQuery;
+        set { _tradeSearchQuery = value; _ = LoadTrades(); }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var period = Certus.Domain.SharedKernel.DateRange.Last30Days;
+        _detail = await PortfolioService.GetPortfolioDetailAsync(Id, period);
+
+        if (_detail != null)
+        {
+            _cumulativePnlData = await TradeService.GetCumulativePnlAsync(Id, null, period);
+            await LoadTrades();
+            BuildStrategyPnlPoints();
+        }
+
+        _loading = false;
+    }
+
+    private async Task LoadTrades()
+    {
+        if (_detail == null) return;
+
+        var filter = new TradeFilter(
+            PortfolioId: Id,
+            StrategyId: _tradeStrategyFilter,
+            Side: _tradeSideFilter,
+            Search: _tradeSearchQuery,
+            PageSize: 100);
+
+        var result = await TradeService.GetTradesAsync(filter);
+        _trades = result.Items.ToList();
+        StateHasChanged();
+    }
+
+    private async Task OnTradeSelected(TradeDto trade)
+    {
+        _selectedTradeDetail = await TradeService.GetTradeDetailAsync(trade.Id);
+        _modalVisible = true;
+        StateHasChanged();
+    }
+
+    private void BuildStrategyPnlPoints()
+    {
+        if (_detail?.EquityCurve == null) return;
+
+        _strategyPnlPoints = _detail.Strategies.Select(s => new StrategyPnlStackedChart.StrategyPnlPoint
+        {
+            StrategyName = s.Name,
+            Points = _detail.EquityCurve.Select(e => new StrategyPnlStackedChart.PointData
+            {
+                Date = e.Date,
+                CumulativePnl = e.DailyPnl * (decimal)s.ContributionPercent / 100m
+            }).ToList()
+        }).ToList();
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/portfolios");
+    }
+
+    private void OnTabChanged(int index)
+    {
+        _activeTab = index;
+    }
+
+    private bool _editPortfolioDialogVisible;
+    private PortfolioFormDialog.PortfolioFormModel _editPortfolioModel = new();
+
+    private void OpenEditPortfolioDialog()
+    {
+        if (_detail is null) return;
+        _editPortfolioModel = new PortfolioFormDialog.PortfolioFormModel
+        {
+            Name = _detail.Summary.Name,
+            Description = _detail.Summary.Description,
+            AllocatedCapital = _detail.Summary.Aum
+        };
+        _editPortfolioDialogVisible = true;
+    }
+
+    private async Task HandleEditPortfolio(PortfolioFormDialog.PortfolioFormModel model)
+    {
+        await PortfolioService.UpdateAsync(Id, new UpdatePortfolioRequest(
+            model.Name, model.Description, model.TargetReturn, model.TargetSharpe, model.AllocatedCapital));
+        _detail = await PortfolioService.GetPortfolioDetailAsync(Id, Certus.Domain.SharedKernel.DateRange.Last30Days);
+        StateHasChanged();
+    }
+
+    private async Task DeletePortfolio()
+    {
+        await PortfolioService.DeleteAsync(Id);
+        Nav.NavigateTo("/portfolios");
+    }
+
+    private bool _createStrategyDialogVisible;
+    private StrategyFormDialog.StrategyFormModel _createStrategyModel = new();
+
+    private void OpenCreateStrategyDialog()
+    {
+        _createStrategyModel = new StrategyFormDialog.StrategyFormModel();
+        _createStrategyDialogVisible = true;
+    }
+
+    private async Task HandleCreateStrategy(StrategyFormDialog.StrategyFormModel model)
+    {
+        await StrategyService.CreateAsync(new CreateStrategyRequest(
+            Id, model.Name, model.Type, model.TargetReturn, model.Weight));
+        _detail = await PortfolioService.GetPortfolioDetailAsync(Id, Certus.Domain.SharedKernel.DateRange.Last30Days);
+        BuildStrategyPnlPoints();
+        StateHasChanged();
+    }
+
+    private bool _editStrategyDialogVisible;
+    private StrategyFormDialog.StrategyFormModel _editStrategyModel = new();
+    private Guid _editingStrategyId;
+
+    private void OpenEditStrategyDialog(StrategyPerformanceDto strategy)
+    {
+        _editingStrategyId = strategy.Id;
+        _editStrategyModel = new StrategyFormDialog.StrategyFormModel
+        {
+            Name = strategy.Name,
+            Type = strategy.Type,
+            TargetReturn = 0,
+            Weight = strategy.ContributionPercent / 100m
+        };
+        _editStrategyDialogVisible = true;
+    }
+
+    private async Task HandleEditStrategy(StrategyFormDialog.StrategyFormModel model)
+    {
+        await StrategyService.UpdateAsync(_editingStrategyId, new UpdateStrategyRequest(
+            model.Name, model.Type, model.TargetReturn, model.Weight));
+        _detail = await PortfolioService.GetPortfolioDetailAsync(Id, Certus.Domain.SharedKernel.DateRange.Last30Days);
+        BuildStrategyPnlPoints();
+        StateHasChanged();
+    }
+
+    private async Task DeleteStrategy(Guid strategyId)
+    {
+        await StrategyService.DeleteAsync(strategyId);
+        _detail = await PortfolioService.GetPortfolioDetailAsync(Id, Certus.Domain.SharedKernel.DateRange.Last30Days);
+        BuildStrategyPnlPoints();
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,71 @@
+<MudDialog @bind-Visible="Visible" Options="new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true }">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color: white;">Trade Details</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (Trade != null)
+        {
+            <MudGrid>
+                <MudItem xs="6">
+                    <MudField Label="Symbol" Variant="Variant.Outlined">@Trade.Trade.Symbol</MudField>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudField Label="Side" Variant="Variant.Outlined">
+                        <span style="color: @(Trade.Trade.Side == TradeSide.Long ? "#22c55e" : "#ef4444"); font-weight: 600;">@Trade.Trade.Side</span>
+                    </MudField>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudField Label="Entry Time" Variant="Variant.Outlined">@Trade.Trade.EntryTime.ToString("yyyy-MM-dd HH:mm")</MudField>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudField Label="Exit Time" Variant="Variant.Outlined">@(Trade.Trade.ExitTime?.ToString("yyyy-MM-dd HH:mm") ?? "\u2014")</MudField>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudField Label="Entry Price" Variant="Variant.Outlined">@Trade.Trade.EntryPrice.ToString("N2")</MudField>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudField Label="Exit Price" Variant="Variant.Outlined">@(Trade.Trade.ExitPrice?.ToString("N2") ?? "\u2014")</MudField>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudField Label="Quantity" Variant="Variant.Outlined">@Trade.Trade.Quantity.ToString("N8")</MudField>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudField Label="Status" Variant="Variant.Outlined">@Trade.Trade.Status</MudField>
+                </MudItem>
+                <MudItem xs="4">
+                    <MudField Label="PnL" Variant="Variant.Outlined">
+                        <span style="color: @(Trade.Trade.PnL >= 0 ? "#22c55e" : "#ef4444"); font-weight: 600;">@Trade.Trade.PnL.ToString("C2")</span>
+                    </MudField>
+                </MudItem>
+                <MudItem xs="4">
+                    <MudField Label="PnL %" Variant="Variant.Outlined">
+                        <span style="color: @(Trade.Trade.PnLPercent >= 0 ? "#22c55e" : "#ef4444"); font-weight: 600;">@Trade.Trade.PnLPercent.ToString("P2")</span>
+                    </MudField>
+                </MudItem>
+                <MudItem xs="4">
+                    <MudField Label="Fees" Variant="Variant.Outlined">@Trade.Trade.Fees.ToString("C2")</MudField>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudField Label="Agent Reason" Variant="Variant.Outlined">
+                        <MudText Style="color: #94a3b8;">@Trade.AgentReason</MudText>
+                    </MudField>
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public TradeDetailDto? Trade { get; set; }
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
+
+    private async Task Close()
+    {
+        Visible = false;
+        await VisibleChanged.InvokeAsync(false);
+    }
+}

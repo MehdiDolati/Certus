@@ -1,35 +1,16 @@
-version: '3.8'
-
 services:
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: certus-sqlserver
-    environment:
-      ACCEPT_EULA: "Y"
-      SA_PASSWORD: "YourPassword123!"
-    ports:
-      - "1433:1433"
-    volumes:
-      - sqlserver_data:/var/opt/mssql
-    healthcheck:
-      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "YourPassword123!", "-Q", "SELECT 1"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-
-  api:
+  dashboard:
     build:
-      dockerfile: Dockerfile
       context: .
-    container_name: certus-api
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=CertusDb;User Id=sa;Password=YourPassword123!;TrustServerCertificate=true
+      dockerfile: Dockerfile
     ports:
-      - "5000:5000"
-    depends_on:
-      sqlserver:
-        condition: service_healthy
+      - "8080:8080"
+    volumes:
+      - certus-data:/data
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Data Source=/data/certus.db
+    restart: unless-stopped
 
 volumes:
-  sqlserver_data:
+  certus-data:

@@ -1,0 +1,37 @@
+@if (PortfolioStatus.HasValue)
+{
+    var status = PortfolioStatus.Value;
+    if (status == Certus.Domain.RiskAndPortfolio.Enums.PortfolioStatus.Active)
+    {
+        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">Active</MudChip>
+    }
+    else if (status == Certus.Domain.RiskAndPortfolio.Enums.PortfolioStatus.Paused)
+    {
+        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">Paused</MudChip>
+    }
+    else if (status == Certus.Domain.RiskAndPortfolio.Enums.PortfolioStatus.Closed)
+    {
+        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Filled">Closed</MudChip>
+    }
+}
+else if (StratStatus.HasValue)
+{
+    var status = StratStatus.Value;
+    if (status == Certus.Domain.Strategy.Enums.StrategyStatus.Active)
+    {
+        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">Active</MudChip>
+    }
+    else if (status == Certus.Domain.Strategy.Enums.StrategyStatus.Paused)
+    {
+        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">Paused</MudChip>
+    }
+    else if (status == Certus.Domain.Strategy.Enums.StrategyStatus.Retired)
+    {
+        <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled">Retired</MudChip>
+    }
+}
+
+@code {
+    [Parameter] public Certus.Domain.RiskAndPortfolio.Enums.PortfolioStatus? PortfolioStatus { get; set; }
+    [Parameter] public Certus.Domain.Strategy.Enums.StrategyStatus? StratStatus { get; set; }
+}

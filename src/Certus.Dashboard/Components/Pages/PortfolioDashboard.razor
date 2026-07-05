@@ -1,0 +1,218 @@
+@page "/portfolios"
+@using Certus.Dashboard.Components.Shared
+@using Certus.Dashboard.Components.Tables
+@inject IPortfolioService PortfolioService
+@inject NavigationManager Nav
+
+<PageTitle>Portfolio Dashboard - Certus</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="pa-6">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <MudText Typo="Typo.h4" Style="color: white; font-weight: 700;">PORTFOLIO DASHBOARD</MudText>
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateDialog">New Portfolio</MudButton>
+            <MudSelect T="string" @bind-Value="SelectedPeriod" Label="Period" Variant="Variant.Outlined"
+                       Style="min-width: 140px;" AdornmentColor="Color.Primary">
+                <MudSelectItem Value="@("1W")">1 Week</MudSelectItem>
+                <MudSelectItem Value="@("1M")">1 Month</MudSelectItem>
+                <MudSelectItem Value="@("3M")">3 Months</MudSelectItem>
+                <MudSelectItem Value="@("6M")">6 Months</MudSelectItem>
+                <MudSelectItem Value="@("YTD")">Year to Date</MudSelectItem>
+                <MudSelectItem Value="@("1Y")">1 Year</MudSelectItem>
+                <MudSelectItem Value="@("ALL")">All</MudSelectItem>
+            </MudSelect>
+        </div>
+    </div>
+
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" sm="6" md="2">
+            <KpiCard Label="Total AUM" Value="@FormatCurrency(Kpis.TotalAum)"
+                     Icon="@Icons.Material.Filled.AccountBalance" IsLoading="@_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <KpiCard Label="Total PnL" Value="@FormatCurrency(Kpis.TotalPnl)"
+                     Trend="@(Kpis.TotalPnl >= 0 ? 1m : -1m)"
+                     Icon="@Icons.Material.Filled.TrendingUp" IsLoading="@_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <KpiCard Label="Avg Sharpe" Value="@Kpis.AvgSharpe.ToString("N2")"
+                     Icon="@Icons.Material.Filled.Speed" IsLoading="@_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <KpiCard Label="Max Drawdown" Value="@Kpis.MaxDrawdown.ToString("P1")"
+                     Icon="@Icons.Material.Filled.TrendingDown" IsLoading="@_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <KpiCard Label="Win Rate" Value="@Kpis.WinRate.ToString("P1")"
+                     Icon="@Icons.Material.Filled.CheckCircle" IsLoading="@_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <KpiCard Label="Active" Value="@Kpis.ActiveCount.ToString()"
+                     Icon="@Icons.Material.Filled.PlayArrow" IsLoading="@_loading" />
+        </MudItem>
+    </MudGrid>
+
+    <MudPaper Class="pa-4 mb-4" Style="background: #1e293b; border-radius: 12px;">
+        <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+            <MudSelect T="PortfolioStatus?" @bind-Value="StatusFilter" Label="Status" Variant="Variant.Outlined"
+                       Clearable="true" Style="min-width: 140px;">
+                <MudSelectItem T="PortfolioStatus?" Value="@((PortfolioStatus?)null)">All</MudSelectItem>
+                <MudSelectItem T="PortfolioStatus?" Value="@(PortfolioStatus.Active)">Active</MudSelectItem>
+                <MudSelectItem T="PortfolioStatus?" Value="@(PortfolioStatus.Paused)">Paused</MudSelectItem>
+                <MudSelectItem T="PortfolioStatus?" Value="@(PortfolioStatus.Closed)">Closed</MudSelectItem>
+            </MudSelect>
+            <MudTextField @bind-Value="SearchQuery" Label="Search portfolios" Variant="Variant.Outlined"
+                          Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Style="max-width: 250px;" />
+        </div>
+    </MudPaper>
+
+    @if (_loading)
+    {
+        <MudPaper Class="pa-6" Style="background: #1e293b; border-radius: 12px;">
+            @for (int i = 0; i < 5; i++)
+            {
+                <MudSkeleton Animation="Animation.Wave" Height="48px" Class="mb-2" />
+            }
+        </MudPaper>
+    }
+    else if (!Portfolios.Any())
+    {
+        <MudPaper Class="pa-12" Style="background: #1e293b; border-radius: 12px; text-align: center;">
+            <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Large" Style="color: #94a3b8;" />
+            <MudText Typo="Typo.h6" Class="mt-4" Style="color: #94a3b8;">No portfolios yet</MudText>
+            <MudText Typo="Typo.body2" Style="color: #64748b;">Create your first portfolio to get started.</MudText>
+        </MudPaper>
+    }
+    else
+    {
+        <PortfolioSummaryTable Portfolios="@Portfolios" OnViewReport="@NavigateToDetail"
+                               OnEdit="@OpenEditDialog" OnDelete="@DeletePortfolio" />
+    }
+
+    <PortfolioFormDialog @bind-Visible="_createDialogVisible" IsEdit="false"
+                         Model="_createModel" OnSubmit="HandleCreate" />
+    <PortfolioFormDialog @bind-Visible="_editDialogVisible" IsEdit="true"
+                         Model="_editModel" OnSubmit="HandleEdit" />
+</MudContainer>
+
+@code {
+    private bool _loading = true;
+    private List<PortfolioDto> Portfolios = [];
+    private DashboardKpis Kpis = new(0, 0, 0, 0, 0, 0);
+
+    private string _selectedPeriod = "1M";
+    private string SelectedPeriod
+    {
+        get => _selectedPeriod;
+        set { _selectedPeriod = value; _ = LoadData(); }
+    }
+
+    private PortfolioStatus? _statusFilter;
+    private PortfolioStatus? StatusFilter
+    {
+        get => _statusFilter;
+        set { _statusFilter = value; _ = LoadData(); }
+    }
+
+    private string? _searchQuery;
+    private string? SearchQuery
+    {
+        get => _searchQuery;
+        set { _searchQuery = value; _ = LoadData(); }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        var period = GetPeriod();
+        var filter = new PortfolioFilter(
+            Status: StatusFilter,
+            Search: SearchQuery,
+            Period: period);
+
+        Portfolios = await PortfolioService.GetAllPortfoliosAsync(filter);
+        Kpis = await PortfolioService.GetDashboardKpisAsync(period);
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private Certus.Domain.SharedKernel.DateRange GetPeriod() => SelectedPeriod switch
+    {
+        "1W" => Certus.Domain.SharedKernel.DateRange.Last30Days with { From = DateTime.UtcNow.AddDays(-7) },
+        "1M" => Certus.Domain.SharedKernel.DateRange.Last30Days,
+        "3M" => Certus.Domain.SharedKernel.DateRange.Last90Days,
+        "6M" => new Certus.Domain.SharedKernel.DateRange(DateTime.UtcNow.AddDays(-180), DateTime.UtcNow),
+        "YTD" => Certus.Domain.SharedKernel.DateRange.YearToDate,
+        "1Y" => Certus.Domain.SharedKernel.DateRange.Last1Year,
+        _ => Certus.Domain.SharedKernel.DateRange.All
+    };
+
+    private void NavigateToDetail(Guid id)
+    {
+        Nav.NavigateTo($"/portfolios/{id}");
+    }
+
+    private string FormatCurrency(decimal value) => value switch
+    {
+        >= 1_000_000 => $"${value / 1_000_000:N1}M",
+        >= 1_000 => $"${value / 1_000:N1}K",
+        _ => value.ToString("C0")
+    };
+
+    private bool _createDialogVisible;
+    private PortfolioFormDialog.PortfolioFormModel _createModel = new();
+
+    private bool _editDialogVisible;
+    private PortfolioFormDialog.PortfolioFormModel _editModel = new();
+    private Guid _editingPortfolioId;
+
+    private void OpenCreateDialog()
+    {
+        _createModel = new PortfolioFormDialog.PortfolioFormModel();
+        _createDialogVisible = true;
+    }
+
+    private void OpenEditDialog(PortfolioDto portfolio)
+    {
+        _editingPortfolioId = portfolio.Id;
+        _editModel = new PortfolioFormDialog.PortfolioFormModel
+        {
+            Name = portfolio.Name,
+            Description = portfolio.Description,
+            TargetReturn = 0,
+            TargetSharpe = 0,
+            AllocatedCapital = portfolio.Aum
+        };
+        _editDialogVisible = true;
+    }
+
+    private async Task HandleCreate(PortfolioFormDialog.PortfolioFormModel model)
+    {
+        await PortfolioService.CreateAsync(new CreatePortfolioRequest(
+            model.Name, model.Description, model.TargetReturn, model.TargetSharpe, model.AllocatedCapital));
+        await LoadData();
+    }
+
+    private async Task HandleEdit(PortfolioFormDialog.PortfolioFormModel model)
+    {
+        await PortfolioService.UpdateAsync(_editingPortfolioId, new UpdatePortfolioRequest(
+            model.Name, model.Description, model.TargetReturn, model.TargetSharpe, model.AllocatedCapital));
+        await LoadData();
+    }
+
+    private async Task DeletePortfolio(Guid id)
+    {
+        await PortfolioService.DeleteAsync(id);
+        await LoadData();
+    }
+}

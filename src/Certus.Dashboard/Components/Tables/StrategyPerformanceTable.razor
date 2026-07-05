@@ -1,0 +1,73 @@
+@using Certus.Dashboard.Components.Shared
+
+<MudTable T="StrategyPerformanceDto" Items="@Strategies" Hover="true" Dense="true"
+          Style="background: #1e293b; border-radius: 12px;">
+    <HeaderContent>
+        <MudTh Style="color: #94a3b8;">Strategy</MudTh>
+        <MudTh Style="color: #94a3b8;">Contribution</MudTh>
+        <MudTh Style="color: #94a3b8;">Actual</MudTh>
+        <MudTh Style="color: #94a3b8;">Supposed</MudTh>
+        <MudTh Style="color: #94a3b8;">Variance</MudTh>
+        <MudTh Style="color: #94a3b8;">Sharpe</MudTh>
+        <MudTh Style="color: #94a3b8;">Trades</MudTh>
+        <MudTh Style="color: #94a3b8;">Win Rate</MudTh>
+        <MudTh Style="color: #94a3b8;">Status</MudTh>
+        <MudTh Style="color: #94a3b8;"></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Strategy">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <MudText Style="color: white; font-weight: 500;">@context.Name</MudText>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Style="color: #94a3b8;">@context.Type</MudChip>
+            </div>
+        </MudTd>
+        <MudTd DataLabel="Contribution">
+            <MudProgressLinear Value="@((double)context.ContributionPercent)" Max="100" Color="Color.Primary"
+                               Style="height: 6px; min-width: 60px;" />
+            <MudText Typo="Typo.caption" Style="color: #94a3b8;">@context.ContributionPercent.ToString("N1")%</MudText>
+        </MudTd>
+        <MudTd DataLabel="Actual">
+            <span style="color: @(context.ActualReturn >= 0 ? "#22c55e" : "#ef4444"); font-weight: 600; font-family: monospace;">
+                @context.ActualReturn.ToString("P1")
+            </span>
+        </MudTd>
+        <MudTd DataLabel="Supposed">
+            <span style="color: #94a3b8; font-family: monospace;">@context.SupposedReturn.ToString("P1")</span>
+        </MudTd>
+        <MudTd DataLabel="Variance">
+            <span style="color: @(context.Variance >= 0 ? "#22c55e" : "#ef4444"); font-family: monospace;">
+                @(context.Variance >= 0 ? "+" : "")@context.Variance.ToString("P1")
+            </span>
+        </MudTd>
+        <MudTd DataLabel="Sharpe">
+            <span style="color: white; font-family: monospace;">@context.Sharpe.ToString("N2")</span>
+        </MudTd>
+        <MudTd DataLabel="Trades">
+            <span style="color: #94a3b8;">@context.TradeCount</span>
+        </MudTd>
+        <MudTd DataLabel="Win Rate">
+            <span style="color: @(context.WinRate >= 50 ? "#22c55e" : "#ef4444"); font-family: monospace;">
+                @context.WinRate.ToString("N1")%
+            </span>
+        </MudTd>
+        <MudTd DataLabel="Status">
+            <StatusBadge StratStatus="@context.Status" />
+        </MudTd>
+        <MudTd>
+            <div style="display: flex; gap: 4px;">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                               Style="color: #3b82f6;"
+                               OnClick="@(() => OnEdit.InvokeAsync(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                               Style="color: #ef4444;"
+                               OnClick="@(() => OnDelete.InvokeAsync(context.Id))" />
+            </div>
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    [Parameter] public List<StrategyPerformanceDto> Strategies { get; set; } = [];
+    [Parameter] public EventCallback<StrategyPerformanceDto> OnEdit { get; set; }
+    [Parameter] public EventCallback<Guid> OnDelete { get; set; }
+}

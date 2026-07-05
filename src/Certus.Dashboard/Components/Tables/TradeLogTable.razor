@@ -1,0 +1,70 @@
+<MudTable T="TradeDto" Items="@Trades" Hover="true" Dense="true" OnRowClick="@OnRowClick"
+          Style="background: #1e293b; border-radius: 12px;">
+    <HeaderContent>
+        <MudTh Style="color: #94a3b8;">Time</MudTh>
+        <MudTh Style="color: #94a3b8;">Strategy</MudTh>
+        <MudTh Style="color: #94a3b8;">Symbol</MudTh>
+        <MudTh Style="color: #94a3b8;">Side</MudTh>
+        <MudTh Style="color: #94a3b8;">Entry</MudTh>
+        <MudTh Style="color: #94a3b8;">Exit</MudTh>
+        <MudTh Style="color: #94a3b8;">PnL</MudTh>
+        <MudTh Style="color: #94a3b8;">PnL %</MudTh>
+        <MudTh Style="color: #94a3b8;">Fees</MudTh>
+        <MudTh Style="color: #94a3b8;">Status</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Time">
+            <span style="color: #94a3b8; font-size: 12px;">@context.EntryTime.ToString("MM/dd HH:mm")</span>
+        </MudTd>
+        <MudTd DataLabel="Strategy">
+            <span style="color: white;">@context.StrategyName</span>
+        </MudTd>
+        <MudTd DataLabel="Symbol">
+            <span style="color: white; font-weight: 500;">@context.Symbol</span>
+        </MudTd>
+        <MudTd DataLabel="Side">
+            <span style="color: @(context.Side == TradeSide.Long ? "#22c55e" : "#ef4444"); font-weight: 600;">@context.Side</span>
+        </MudTd>
+        <MudTd DataLabel="Entry">
+            <span style="color: white; font-family: monospace;">@context.EntryPrice.ToString("N2")</span>
+        </MudTd>
+        <MudTd DataLabel="Exit">
+            <span style="color: white; font-family: monospace;">@(context.ExitPrice?.ToString("N2") ?? "\u2014")</span>
+        </MudTd>
+        <MudTd DataLabel="PnL">
+            <span style="color: @(context.PnL >= 0 ? "#22c55e" : "#ef4444"); font-weight: 600; font-family: monospace;">
+                @context.PnL.ToString("C2")
+            </span>
+        </MudTd>
+        <MudTd DataLabel="PnL %">
+            <span style="color: @(context.PnLPercent >= 0 ? "#22c55e" : "#ef4444"); font-family: monospace;">
+                @context.PnLPercent.ToString("P2")
+            </span>
+        </MudTd>
+        <MudTd DataLabel="Fees">
+            <span style="color: #94a3b8; font-family: monospace;">@context.Fees.ToString("C2")</span>
+        </MudTd>
+        <MudTd DataLabel="Status">
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                     Color="@(context.Status == TradeStatus.Closed ? Color.Default : context.Status == TradeStatus.Open ? Color.Success : Color.Error)">
+                @context.Status
+            </MudChip>
+        </MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new[] { 20, 50, 100 }" RowsPerPageString="Rows per page:" />
+    </PagerContent>
+    <NoRecordsContent>
+        <MudText Style="color: #94a3b8; padding: 16px;">No trades found for this period.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    [Parameter] public List<TradeDto> Trades { get; set; } = [];
+    [Parameter] public EventCallback<TradeDto> OnTradeSelected { get; set; }
+
+    private void OnRowClick(TableRowClickEventArgs<TradeDto> args)
+    {
+        OnTradeSelected.InvokeAsync(args.Item);
+    }
+}

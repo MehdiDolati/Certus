@@ -1,0 +1,18 @@
+<div style="width: 100%;">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+        <MudText Typo="Typo.caption" Style="color: #22c55e;">@ActualReturn.ToString("P1")</MudText>
+        <MudText Typo="Typo.caption" Style="color: #94a3b8;">@SupposedReturn.ToString("P1")</MudText>
+    </div>
+    <div style="position: relative; height: 8px; background: #334155; border-radius: 4px; overflow: hidden;">
+        <div style="position: absolute; height: 100%; background: #94a3b8; border-radius: 4px; width: @SupposedWidth%; opacity: 0.3;"></div>
+        <div style="position: absolute; height: 100%; background: @(ActualReturn >= SupposedReturn ? "#22c55e" : "#ef4444"); border-radius: 4px; width: @ActualWidth%;"></div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public decimal ActualReturn { get; set; }
+    [Parameter] public decimal SupposedReturn { get; set; }
+
+    private double ActualWidth => Math.Min(Math.Abs((double)ActualReturn) * 2, 100);
+    private double SupposedWidth => Math.Min(Math.Abs((double)SupposedReturn) * 2, 100);
+}

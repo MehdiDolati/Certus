@@ -1,0 +1,53 @@
+@if (Strategies?.Any() == true)
+{
+    <MudPaper Class="pa-4" Style="background: #1e293b; border-radius: 12px;">
+        <MudText Typo="Typo.h6" Class="mb-4" Style="color: white;">Strategy PnL Contribution</MudText>
+        <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px;">
+            @for (int i = 0; i < Strategies.Count; i++)
+            {
+                <span style="color: @Colors[i % Colors.Length]; font-size: 12px;">&#9644; @Strategies[i].StrategyName</span>
+            }
+        </div>
+        <div style="position: relative; height: 250px; border: 1px solid #334155; border-radius: 8px; overflow: hidden;">
+            <svg width="100%" height="100%" viewBox="0 0 800 250" preserveAspectRatio="none">
+                @for (int i = 0; i < Strategies.Count; i++)
+                {
+                    <polyline points="@GetPoints(Strategies[i])" fill="none" stroke="@Colors[i % Colors.Length]" stroke-width="2" />
+                }
+            </svg>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public List<StrategyPnlPoint>? Strategies { get; set; }
+
+    private static readonly string[] Colors = ["#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6"];
+
+    private string GetPoints(StrategyPnlPoint strategy)
+    {
+        if (!strategy.Points.Any()) return "";
+        var min = strategy.Points.Min(p => p.CumulativePnl);
+        var max = strategy.Points.Max(p => p.CumulativePnl);
+        var range = max - min;
+        if (range == 0) range = 1;
+        return string.Join(" ", strategy.Points.Select((p, i) =>
+        {
+            var x = (double)i / (strategy.Points.Count - 1) * 800;
+            var y = 230 - ((double)(p.CumulativePnl - min) / (double)range * 220);
+            return $"{x:F1},{y:F1}";
+        }));
+    }
+
+    public class StrategyPnlPoint
+    {
+        public string StrategyName { get; set; } = string.Empty;
+        public List<PointData> Points { get; set; } = [];
+    }
+
+    public class PointData
+    {
+        public DateOnly Date { get; set; }
+        public decimal CumulativePnl { get; set; }
+    }
+}

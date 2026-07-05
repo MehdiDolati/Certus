@@ -1,0 +1,38 @@
+@if (Data?.Any() == true)
+{
+    <MudPaper Class="pa-4" Style="background: #1e293b; border-radius: 12px;">
+        <MudText Typo="Typo.h6" Class="mb-4" Style="color: white;">Cumulative PnL</MudText>
+        <div style="position: relative; height: 250px; border: 1px solid #334155; border-radius: 8px; overflow: hidden;">
+            <svg width="100%" height="100%" viewBox="0 0 800 250" preserveAspectRatio="none">
+                @for (int i = 0; i < 5; i++)
+                {
+                    var y = 25 + i * 50;
+                    <line x1="0" y1="@y" x2="800" y2="@y" stroke="#334155" stroke-width="1" />
+                }
+                <polyline points="@GetPoints()" fill="rgba(59,130,246,0.2)" stroke="#3b82f6" stroke-width="2" />
+            </svg>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public List<PerformanceSnapshotDto>? Data { get; set; }
+
+    private string GetPoints()
+    {
+        if (Data == null || !Data.Any()) return "";
+        decimal running = 0;
+        var values = Data.Select(d => { running += d.DailyPnl; return running; }).ToList();
+        var min = values.Min();
+        var max = values.Max();
+        var range = max - min;
+        if (range == 0) range = 1;
+        var points = values.Select((v, i) =>
+        {
+            var x = (double)i / (values.Count - 1) * 800;
+            var y = 230 - ((double)(v - min) / (double)range * 220);
+            return $"{x:F1},{y:F1}";
+        });
+        return "0,230 " + string.Join(" ", points) + " 800,230";
+    }
+}

@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Certus.Application/Certus.Application.csproj" />
+    <Project Path="src/Certus.Dashboard/Certus.Dashboard.csproj" />
+    <Project Path="src/Certus.Domain/Certus.Domain.csproj" />
+    <Project Path="src/Certus.Infrastructure/Certus.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Certus.Application.Tests/Certus.Application.Tests.csproj" />
+    <Project Path="tests/Certus.ArchitectureTests/Certus.ArchitectureTests.csproj" />
+    <Project Path="tests/Certus.ComponentTests/Certus.ComponentTests.csproj" />
+    <Project Path="tests/Certus.Domain.Tests/Certus.Domain.Tests.csproj" />
+    <Project Path="tests/Certus.E2ETests/Certus.E2ETests.csproj" />
+    <Project Path="tests/Certus.Infrastructure.Tests/Certus.Infrastructure.Tests.csproj" />
+    <Project Path="tests/Certus.IntegrationTests/Certus.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
