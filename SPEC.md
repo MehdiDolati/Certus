@@ -14,6 +14,7 @@ This project follows **spec-driven development**. Individual specs live in the `
 | [Clean Architecture](specs/architecture/clean-architecture.md) | `specs/architecture/` | Layer rules, dependency constraints, NetArchTest |
 | [Module Boundaries](specs/architecture/module-boundaries.md) | `specs/architecture/` | Module isolation, future extraction |
 | [Domain Architecture](specs/architecture/domain-architecture.md) | `specs/architecture/` | 6 bounded contexts, aggregate roots, domain events |
+| [Platform Integration](specs/features/platform-integration.md) | `specs/features/` | Plugin architecture, file-based data import, MT4 EA integration |
 
 ## Workflow
 

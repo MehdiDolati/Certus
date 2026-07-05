@@ -63,6 +63,50 @@ public class PortfolioTests
         portfolio.AllocatedCapitalInMillions.Should().Be(12.4m);
     }
 
+    // AC-007: Given a portfolio with empty name, when creating, then validation error is thrown
+    [Fact]
+    public void Portfolio_Should_Throw_On_Empty_Name()
+    {
+        var act = () => new Portfolio(Guid.NewGuid(), "", 0.1m, 1.0m, new Money(1_000_000m, Currency.USD));
+        act.Should().Throw<ArgumentException>();
+    }
+
+    // AC-008: Given a manually created portfolio, when checking status, then it is NOT Active
+    [Fact]
+    public void Manually_Created_Portfolio_Should_Not_Be_Active()
+    {
+        var portfolio = Portfolio.CreateManually("Test Fund", 0.1m, 1.0m, new Money(1_000_000m, Currency.USD));
+        portfolio.IsActive.Should().BeFalse();
+        portfolio.Status.Should().Be(PortfolioStatus.Draft);
+    }
+
+    // Platform reference tests
+    [Fact]
+    public void Portfolio_SetPlatformReference_Should_Set_Fields()
+    {
+        var portfolio = CreatePortfolio();
+        var connectionId = Guid.NewGuid();
+
+        portfolio.SetPlatformReference(connectionId, "MT4_12345");
+
+        portfolio.PlatformConnectionId.Should().Be(connectionId);
+        portfolio.ExternalPortfolioId.Should().Be("MT4_12345");
+        portfolio.IsPlatformManaged.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Portfolio_ClearPlatformReference_Should_Clear_Fields()
+    {
+        var portfolio = CreatePortfolio();
+        portfolio.SetPlatformReference(Guid.NewGuid(), "MT4_12345");
+
+        portfolio.ClearPlatformReference();
+
+        portfolio.PlatformConnectionId.Should().BeNull();
+        portfolio.ExternalPortfolioId.Should().BeNull();
+        portfolio.IsPlatformManaged.Should().BeFalse();
+    }
+
     private static Portfolio CreatePortfolio() =>
         new(Guid.NewGuid(), "Fund", 0.1m, 1.0m, new Money(1_000_000m, Currency.USD));
 }

@@ -26,6 +26,12 @@ public class Portfolio : AggregateRoot
     public AdaptiveRiskParams? AdaptiveRiskParams { get; private set; }
     public MarketRegime CurrentMarketRegime { get; private set; }
 
+    // Platform reference
+    public Guid? PlatformConnectionId { get; private set; }
+    public string? ExternalPortfolioId { get; private set; }
+    public bool IsPlatformManaged { get; private set; }
+    public DateTime? LastSyncedAt { get; private set; }
+
     public bool IsActive => Status == PortfolioStatus.Active;
     public bool CanAddStrategy() => Status == PortfolioStatus.Active;
     public decimal AllocatedCapitalInMillions => AllocatedCapital.Amount / 1_000_000m;
@@ -40,6 +46,10 @@ public class Portfolio : AggregateRoot
         Money allocatedCapital,
         string description = "") : base(id)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (name.Length > 200)
+            throw new ArgumentException("Portfolio name must not exceed 200 characters", nameof(name));
+
         Name = name;
         Description = description;
         TargetReturn = targetReturn;
@@ -49,6 +59,25 @@ public class Portfolio : AggregateRoot
         CurrentMarketRegime = MarketRegime.Normal;
         CreatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    public static Portfolio CreateManually(
+        string name,
+        decimal targetReturn,
+        decimal targetSharpe,
+        Money allocatedCapital,
+        string description = "")
+    {
+        return new Portfolio(
+            Guid.NewGuid(),
+            name,
+            targetReturn,
+            targetSharpe,
+            allocatedCapital,
+            description)
+        {
+            Status = PortfolioStatus.Draft
+        };
     }
 
     public void AddRiskLimit(RiskLimit riskLimit)
@@ -155,5 +184,27 @@ public class Portfolio : AggregateRoot
             OldStatus = oldStatus,
             NewStatus = PortfolioStatus.Closed
         });
+    }
+
+    public void SetPlatformReference(Guid connectionId, string externalPortfolioId)
+    {
+        PlatformConnectionId = connectionId;
+        ExternalPortfolioId = externalPortfolioId;
+        IsPlatformManaged = true;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ClearPlatformReference()
+    {
+        PlatformConnectionId = null;
+        ExternalPortfolioId = null;
+        IsPlatformManaged = false;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void UpdateLastSynced()
+    {
+        LastSyncedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 }

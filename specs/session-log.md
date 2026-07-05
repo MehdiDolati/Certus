@@ -120,6 +120,32 @@ This file records prompts/requests made during development sessions for referenc
 
 ---
 
+### Prompt 11 — Development Workflow Setup
+> "Time to make up our minds about the development process. From now on we will use github as source control and we need also to have a plan for feature and story management. Also we should think of a plan for branching and source control. Since this is still a solo project I am against something complicated like git-flow."
+
+**Outcome**: Established development workflow:
+- GitHub Flow branching strategy (main + feature/fix/chore branches)
+- Commit convention: `type(scope): description`
+- GitHub Issues templates for features, bugs, and chores
+- PR template with checklist
+- Domain labels for categorization by bounded context
+- Tag-based release strategy
+- Updated DEVELOPMENT_PLAN.md with workflow documentation
+
+---
+
+### Prompt 12 — Platform Integration Feature (Spec-Driven)
+> "Time to work on the first feature. We need to update specs to reflect platform independence. The system should import portfolios from trading platforms via shared text files. Plugin architecture for extensibility."
+
+**Outcome**: Full spec-driven implementation following the project workflow:
+1. **Spec**: Created `specs/features/platform-integration.md` with 18 acceptance criteria, 18 test mappings, data models, business rules, API contract
+2. **Domain Layer**: Platform context with PlatformConnection aggregate, PlatformPortfolio/PlatformStrategy/PlatformTrade value objects, ImportedTrade entity, 8 domain events, 3 repository interfaces, 4 adapter interfaces, Portfolio updated with platform reference and Draft status
+3. **Infrastructure Layer**: PluginLoader, FileImportService (FileSystemWatcher), Mt4Plugin/Mt4Adapter/Mt4JsonParser/Mt4JsonSerializer, EF Core configurations, PlatformConnectionRepository, ImportedTradeRepository
+4. **Application Layer**: PlatformService with Connect/Disconnect/Import/GetStatus operations, 8 DTOs
+5. **Tests**: 120 tests passing (53 Domain + 28 Application + 13 Infrastructure + 6 Architecture + 20 Integration)
+
+---
+
 ## Format
 
 Each prompt entry includes:

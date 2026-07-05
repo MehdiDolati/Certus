@@ -116,6 +116,72 @@ specs/
 
 ---
 
+## Development Workflow
+
+### Branching: GitHub Flow
+
+Simple branching strategy for solo development:
+
+| Branch | Purpose | Example |
+|--------|---------|---------|
+| `main` | Production-ready, always deployable | — |
+| `feature/*` | New features | `feature/market-data-ingestion` |
+| `fix/*` | Bug fixes | `fix/portfolio-calculation-error` |
+| `chore/*` | Maintenance, docs, config | `chore/update-pipeline` |
+
+**Process**:
+1. Create branch from `main`: `git checkout -b feature/market-data`
+2. Commit often with clear messages
+3. Push and open PR (CI runs automatically)
+4. CI passes → merge to `main` → delete branch
+
+### Commit Convention
+
+```
+type(scope): description
+
+feat(market): add PriceBar entity and repository
+fix(portfolio): correct weight calculation
+test(domain): add StrategyDefinition invariant tests
+chore(ci): update pipeline test step
+```
+
+Types: `feat`, `fix`, `test`, `chore`, `refactor`, `docs`
+
+### Feature Management: GitHub Issues
+
+- Issue templates in `.github/ISSUE_TEMPLATE/` for features, bugs, and chores
+- Domain labels (`domain:market`, `domain:strategy`, etc.) for categorization
+- Priority labels for triage
+- Each feature issue links to its spec in `specs/features/`
+
+### Issue Templates
+
+| Template | Use For |
+|----------|---------|
+| `feature.md` | New features with acceptance criteria |
+| `bug.md` | Bug reports with reproduction steps |
+| `task.md` | Maintenance and chore work |
+
+### PR Template
+
+All PRs include:
+- Description of changes
+- Related issue reference
+- Type of change (feature/fix/refactor/docs/chore)
+- Checklist (tests, spec, docs)
+
+### Release Strategy
+
+Simple tag-based releases on `main`:
+
+```bash
+git tag -a v0.1.0 -m "Initial release: Portfolio CRUD"
+git push origin v0.1.0
+```
+
+---
+
 ## How to Run
 
 ```bash
@@ -152,3 +218,5 @@ docker compose up --build
 | Spec Format | Markdown | Version-controlled, human-readable |
 | Cross-context comms | In-process domain events | Swappable to message bus later |
 | Aggregate roots | Portfolio, StrategyDefinition, Trade, PerformanceReport, AgentTask | Each owned by one agent, separate lifecycle |
+| Source Control | GitHub Flow | Simple branching, ideal for solo dev |
+| Feature Tracking | GitHub Issues + Labels | Built-in, lightweight, no external tools |

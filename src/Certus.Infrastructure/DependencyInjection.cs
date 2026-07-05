@@ -4,6 +4,8 @@ using Certus.Domain.Execution.Repositories;
 using Certus.Domain.Market.Repositories;
 using Certus.Domain.Evaluation.Repositories;
 using Certus.Domain.Coordination.Repositories;
+using Certus.Domain.Platform.Repositories;
+using Certus.Domain.Platform.Interfaces;
 using Certus.Domain.SharedKernel;
 using Certus.Infrastructure;
 using Certus.Infrastructure.Persistence;
@@ -14,6 +16,9 @@ using Certus.Infrastructure.Persistence.Repositories.Execution;
 using Certus.Infrastructure.Persistence.Repositories.Market;
 using Certus.Infrastructure.Persistence.Repositories.Evaluation;
 using Certus.Infrastructure.Persistence.Repositories.Coordination;
+using Certus.Infrastructure.Persistence.Repositories.Platform;
+using Certus.Infrastructure.Platform;
+using Certus.Infrastructure.Platform.Plugins.MetaTrader4;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -55,6 +60,14 @@ public static class DependencyInjection
         // Coordination
         services.AddScoped<IAgentTaskRepository, AgentTaskRepository>();
         services.AddScoped<ISystemHealthRepository, SystemHealthRepository>();
+
+        // Platform
+        services.AddScoped<IPlatformConnectionRepository, PlatformConnectionRepository>();
+        services.AddScoped<IImportedTradeRepository, ImportedTradeRepository>();
+        services.AddSingleton<IFileImportService, FileImportService>();
+        services.AddSingleton<PluginLoader>();
+        services.AddSingleton<IPlatformPluginLoader>(sp => sp.GetRequiredService<PluginLoader>());
+        services.AddSingleton<IPlatformPlugin, Mt4Plugin>();
 
         return services;
     }
