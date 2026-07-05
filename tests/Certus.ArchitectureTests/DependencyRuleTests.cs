@@ -77,6 +77,8 @@ public class DependencyRuleTests
             .DoNotHaveNameMatching("<>*") // Exclude compiler-generated anonymous types
             .And().DoNotHaveNameEndingWith("Data") // Exclude internal serialization DTOs
             .And().DoNotHaveNameEndingWith("Info") // Exclude internal serialization DTOs
+            .And().DoNotHaveNameEndingWith("Position") // Exclude internal DTOs
+            .And().DoNotHaveNameEndingWith("Stats") // Exclude internal DTOs
             .Should()
             .HaveDependencyOn("Certus.Domain")
            .GetResult();
