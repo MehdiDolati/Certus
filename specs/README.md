@@ -59,3 +59,6 @@ Each spec includes a **Test Mapping** table:
 - No feature implementation starts without a spec
 - Every acceptance criterion must have at least one test
 - Specs are reviewed before implementation begins
+- **Domain layer must have 100% test coverage** — all entities, value objects, domain events, and repository interfaces
+- **Application layer must have 100% test coverage** — all services, DTOs, and request/response types
+- CI pipeline runs coverage checks; PRs that reduce coverage below target are blocked

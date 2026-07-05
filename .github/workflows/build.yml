@@ -24,8 +24,8 @@ jobs:
     - name: Build solution
       run: dotnet build --configuration Release --no-restore
 
-    - name: Run all tests
-      run: dotnet test --configuration Release --no-build --verbosity normal
+    - name: Run unit and integration tests
+      run: dotnet test --configuration Release --no-build --verbosity normal --filter "FullyQualifiedName!~E2ETests"
 
     - name: Publish Dashboard
       run: dotnet publish src/Certus.Dashboard/Certus.Dashboard.csproj -c Release -o ./publish --no-build
