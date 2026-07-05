@@ -48,9 +48,45 @@ public class AppServerFixture : IAsyncLifetime
     {
         if (_serverProcess != null && !_serverProcess.HasExited)
         {
-            _serverProcess.Kill();
-            await _serverProcess.WaitForExitAsync();
+            try
+            {
+                // Kill the entire process tree (dotnet run spawns child processes)
+                KillProcessTree(_serverProcess);
+                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                await _serverProcess.WaitForExitAsync(cts.Token);
+            }
+            catch
+            {
+                // Process may already be gone
+            }
             _serverProcess.Dispose();
+        }
+    }
+
+    private static void KillProcessTree(Process process)
+    {
+        try
+        {
+            // On Windows, use taskkill to kill the entire process tree
+            if (OperatingSystem.IsWindows())
+            {
+                var taskkill = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "taskkill",
+                    Arguments = $"/F /T /PID {process.Id}",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                });
+                taskkill?.WaitForExit(5000);
+            }
+            else
+            {
+                process.Kill(entireProcessTree: true);
+            }
+        }
+        catch
+        {
+            process.Kill();
         }
     }
 
