@@ -39,7 +39,31 @@ public class Mt4JsonParser : IPlatformDataParser
                 Profit = s.Profit,
                 TotalTrades = s.TotalTrades,
                 LastTradeTime = s.LastTradeTime,
-                Timestamp = json.Timestamp
+                Timestamp = json.Timestamp,
+                OpenPositions = s.OpenPositions?.Select(op => new OpenPosition
+                {
+                    Ticket = op.Ticket,
+                    Symbol = op.Symbol,
+                    Type = op.Type,
+                    Volume = op.Volume,
+                    OpenPrice = op.OpenPrice,
+                    CurrentPrice = op.CurrentPrice,
+                    StopLoss = op.StopLoss,
+                    TakeProfit = op.TakeProfit,
+                    Profit = op.Profit,
+                    OpenTime = op.OpenTime,
+                    Comment = op.Comment
+                }).ToList() ?? new List<OpenPosition>(),
+                Stats = s.Stats != null ? new StrategyStats
+                {
+                    WinningTrades = s.Stats.WinningTrades,
+                    LosingTrades = s.Stats.LosingTrades,
+                    TotalProfit = s.Stats.TotalProfit,
+                    TotalLoss = s.Stats.TotalLoss,
+                    WinRate = s.Stats.WinRate,
+                    ProfitFactor = s.Stats.ProfitFactor,
+                    MaxDrawdown = s.Stats.MaxDrawdown
+                } : null
             }).ToList() ?? new List<PlatformStrategy>()
         };
     }

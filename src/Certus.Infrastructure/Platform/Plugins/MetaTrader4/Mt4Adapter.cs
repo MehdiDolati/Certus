@@ -195,6 +195,34 @@ internal class Mt4StrategyInfo
     public decimal Profit { get; set; }
     public int TotalTrades { get; set; }
     public DateTime? LastTradeTime { get; set; }
+    public List<Mt4OpenPosition>? OpenPositions { get; set; }
+    public Mt4StrategyStats? Stats { get; set; }
+}
+
+internal class Mt4OpenPosition
+{
+    public int Ticket { get; set; }
+    public string Symbol { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public decimal Volume { get; set; }
+    public decimal OpenPrice { get; set; }
+    public decimal CurrentPrice { get; set; }
+    public decimal StopLoss { get; set; }
+    public decimal TakeProfit { get; set; }
+    public decimal Profit { get; set; }
+    public DateTime OpenTime { get; set; }
+    public string Comment { get; set; } = string.Empty;
+}
+
+internal class Mt4StrategyStats
+{
+    public int WinningTrades { get; set; }
+    public int LosingTrades { get; set; }
+    public decimal TotalProfit { get; set; }
+    public decimal TotalLoss { get; set; }
+    public decimal WinRate { get; set; }
+    public decimal ProfitFactor { get; set; }
+    public decimal MaxDrawdown { get; set; }
 }
 
 internal class Mt4TradesData

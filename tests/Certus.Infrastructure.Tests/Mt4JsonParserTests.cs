@@ -182,4 +182,56 @@ public class Mt4JsonParserTests
     {
         _sut.SupportedExtensions.Should().Contain(".json");
     }
+
+    // AC-019: Given an EA writing strategy data, when Certus reads portfolio_status.json, then open positions and performance metrics are captured
+    [Fact]
+    public void ParsePortfolio_Should_Capture_Open_Positions()
+    {
+        var json = """
+        {
+          "timestamp": "2026-07-05T10:30:00Z",
+          "portfolio": { "id": "12345", "name": "Test", "balance": 10000, "equity": 10200, "margin": 500, "freeMargin": 9700, "profit": 200 },
+          "strategies": [
+            {
+              "id": "EA_01", "name": "Test EA", "active": true, "profit": 200, "totalTrades": 10, "lastTradeTime": "2026-07-05T10:00:00Z",
+              "openPositions": [
+                { "ticket": 123456, "symbol": "EURUSD", "type": "buy", "volume": 0.1, "openPrice": 1.085, "currentPrice": 1.087, "stopLoss": 1.08, "takeProfit": 1.09, "profit": 20, "openTime": "2026-07-05T09:00:00Z", "comment": "signal" }
+              ],
+              "stats": { "winningTrades": 7, "losingTrades": 3, "totalProfit": 500, "totalLoss": -200, "winRate": 0.7, "profitFactor": 2.5, "maxDrawdown": 3.2 }
+            }
+          ]
+        }
+        """;
+
+        var result = _sut.ParsePortfolio(json);
+
+        result.Strategies.Should().HaveCount(1);
+        var strategy = result.Strategies.First();
+        strategy.ExternalId.Should().Be("EA_01");
+        strategy.OpenPositions.Should().HaveCount(1);
+        strategy.OpenPositions.First().Ticket.Should().Be(123456);
+        strategy.OpenPositions.First().Symbol.Should().Be("EURUSD");
+        strategy.Stats.Should().NotBeNull();
+        strategy.Stats!.WinRate.Should().Be(0.7m);
+        strategy.Stats.ProfitFactor.Should().Be(2.5m);
+    }
+
+    [Fact]
+    public void ParsePortfolio_Should_Handle_Missing_Open_Positions()
+    {
+        var json = """
+        {
+          "timestamp": "2026-07-05T10:30:00Z",
+          "portfolio": { "id": "12345", "name": "Test", "balance": 10000, "equity": 10200, "margin": 500, "freeMargin": 9700, "profit": 200 },
+          "strategies": [
+            { "id": "EA_01", "name": "Test EA", "active": true, "profit": 200, "totalTrades": 10, "lastTradeTime": "2026-07-05T10:00:00Z" }
+          ]
+        }
+        """;
+
+        var result = _sut.ParsePortfolio(json);
+
+        result.Strategies.First().OpenPositions.Should().BeEmpty();
+        result.Strategies.First().Stats.Should().BeNull();
+    }
 }
