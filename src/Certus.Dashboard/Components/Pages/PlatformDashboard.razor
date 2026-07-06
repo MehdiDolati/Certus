@@ -1,0 +1,162 @@
+@page "/platform"
+@rendermode InteractiveServer
+@inject IPlatformService PlatformService
+@inject NavigationManager Nav
+
+<PageTitle>Platform - Certus</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="pa-6">
+    <MudText Typo="Typo.h4" Style="color: white; font-weight: 700;" Class="mb-2">PLATFORM MANAGEMENT</MudText>
+    <MudText Typo="Typo.body1" Style="color: #94a3b8;" Class="mb-6">
+        Monitor platform connections, imported trades, and strategy data.
+    </MudText>
+
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Label="Total Connections" Value="@_dashboard.TotalConnections.ToString()"
+                     Icon="@Icons.Material.Filled.Hub" IsLoading="@_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Label="Active Connections" Value="@_dashboard.ActiveConnections.ToString()"
+                     Icon="@Icons.Material.Filled.CheckCircle" IsLoading="@_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Label="Imported Trades" Value="@_dashboard.TotalTrades.ToString()"
+                     Icon="@Icons.Material.Filled.FileDownload" IsLoading="@_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Label="Total PnL" Value="@FormatCurrency(_dashboard.TotalPnL)"
+                     Trend="@(_dashboard.TotalPnL >= 0 ? 1m : -1m)"
+                     Icon="@Icons.Material.Filled.TrendingUp" IsLoading="@_loading" />
+        </MudItem>
+    </MudGrid>
+
+    @if (_loading)
+    {
+        <MudPaper Class="pa-6" Style="background: #1e293b; border-radius: 12px;">
+            @for (int i = 0; i < 3; i++)
+            {
+                <MudSkeleton Animation="Animation.Wave" Height="80px" Class="mb-2" />
+            }
+        </MudPaper>
+    }
+    else if (!_dashboard.Connections.Any())
+    {
+        <MudPaper Class="pa-12" Style="background: #1e293b; border-radius: 12px; text-align: center;">
+            <MudIcon Icon="@Icons.Material.Filled.Hub" Size="Size.Large" Style="color: #94a3b8;" />
+            <MudText Typo="Typo.h6" Class="mt-4" Style="color: #94a3b8;">No platform connections</MudText>
+            <MudText Typo="Typo.body2" Style="color: #64748b;">Connect to a trading platform to start importing data.</MudText>
+        </MudPaper>
+    }
+    else
+    {
+        <MudText Typo="Typo.h6" Style="color: white; font-weight: 600; margin-bottom: 16px;">Connections</MudText>
+
+        @foreach (var conn in _dashboard.Connections)
+        {
+            <MudPaper Class="pa-4 mb-3" Style="background: #1e293b; border-radius: 12px;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 48px; height: 48px; border-radius: 12px; background: #0f172a; display: flex; align-items: center; justify-content: center;">
+                        <MudIcon Icon="@Icons.Material.Filled.Hub" Size="Size.Medium"
+                                 Style="color: #94a3b8;" />
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <MudText Typo="Typo.h6" Style="color: white; font-weight: 600;">@conn.PlatformName</MudText>
+                            <MudChip T="string" Size="Size.Small"
+                                     Style="@($"background: {GetStatusBgColor(conn.Status)}; color: {GetStatusTextColor(conn.Status)}; font-weight: 500;")">
+                                @conn.Status
+                            </MudChip>
+                        </div>
+                        <div style="display: flex; gap: 24px; margin-top: 4px;">
+                            @if (conn.ConnectedAt.HasValue)
+                            {
+                                <MudText Typo="Typo.caption" Style="color: #64748b;">
+                                    Connected: @conn.ConnectedAt.Value.ToString("MMM dd, yyyy HH:mm")
+                                </MudText>
+                            }
+                            @if (conn.LastDataReceivedAt.HasValue)
+                            {
+                                <MudText Typo="Typo.caption" Style="color: #64748b;">
+                                    Last data: @conn.LastDataReceivedAt.Value.ToString("MMM dd, yyyy HH:mm")
+                                </MudText>
+                            }
+                            @if (conn.RetryCount > 0)
+                            {
+                                <MudText Typo="Typo.caption" Style="color: #eab308;">
+                                    Retries: @conn.RetryCount
+                                </MudText>
+                            }
+                        </div>
+                        @if (!string.IsNullOrEmpty(conn.ErrorMessage))
+                        {
+                            <MudText Typo="Typo.caption" Style="color: #ef4444; margin-top: 4px;">
+                                @conn.ErrorMessage
+                            </MudText>
+                        }
+                    </div>
+                </div>
+            </MudPaper>
+        }
+
+        @if (_dashboard.TotalPortfolios > 0)
+        {
+            <MudText Typo="Typo.h6" Style="color: white; font-weight: 600; margin-top: 24px; margin-bottom: 16px;">Imported Portfolios</MudText>
+            <MudPaper Class="pa-4" Style="background: #1e293b; border-radius: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Small" Style="color: #94a3b8;" />
+                    <MudText Typo="Typo.body1" Style="color: white;">
+                        @_dashboard.TotalPortfolios portfolio(s) imported from platform
+                    </MudText>
+                </div>
+            </MudPaper>
+        }
+    }
+</MudContainer>
+
+@code {
+    private bool _loading = true;
+    private PlatformDashboardDto _dashboard = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        _dashboard = await PlatformService.GetDashboardAsync();
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private string FormatCurrency(decimal value) => value switch
+    {
+        >= 1_000_000 => $"${value / 1_000_000:N1}M",
+        >= 1_000 => $"${value / 1_000:N1}K",
+        < 0 => $"-${Math.Abs(value):N0}",
+        _ => $"${value:N0}"
+    };
+
+    private string GetStatusBgColor(PlatformConnectionStatus status) => status switch
+    {
+        PlatformConnectionStatus.Connected => "rgba(34, 197, 94, 0.15)",
+        PlatformConnectionStatus.Connecting => "rgba(234, 179, 8, 0.15)",
+        PlatformConnectionStatus.Reconnecting => "rgba(234, 179, 8, 0.15)",
+        PlatformConnectionStatus.Error => "rgba(239, 68, 68, 0.15)",
+        _ => "rgba(100, 116, 139, 0.15)"
+    };
+
+    private string GetStatusTextColor(PlatformConnectionStatus status) => status switch
+    {
+        PlatformConnectionStatus.Connected => "#22c55e",
+        PlatformConnectionStatus.Connecting => "#eab308",
+        PlatformConnectionStatus.Reconnecting => "#eab308",
+        PlatformConnectionStatus.Error => "#ef4444",
+        _ => "#64748b"
+    };
+}

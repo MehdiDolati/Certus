@@ -1,15 +1,231 @@
 @page "/"
 @rendermode InteractiveServer
+@inject IPortfolioService PortfolioService
+@inject IPlatformService PlatformService
+@inject ITradeService TradeService
+@inject NavigationManager Nav
 
 <PageTitle>Certus Dashboard</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="pa-6">
-    <MudText Typo="Typo.h3" Style="color: white; font-weight: 700;" Class="mb-4">Certus Dashboard</MudText>
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="pa-6">
+    <MudText Typo="Typo.h4" Style="color: white; font-weight: 700;" Class="mb-2">CERTUS DASHBOARD</MudText>
     <MudText Typo="Typo.body1" Style="color: #94a3b8;" Class="mb-6">
-        Autonomous multi-agent trading platform.
+        Autonomous multi-agent trading platform overview.
     </MudText>
-    <MudButton Href="/portfolios" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-               StartIcon="@Icons.Material.Filled.AccountBalance">
-        View Portfolios
-    </MudButton>
+
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Label="Total Portfolios" Value="@_kpis.PortfolioCount.ToString()"
+                     Icon="@Icons.Material.Filled.AccountBalance" IsLoading="@_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Label="Active Portfolios" Value="@_kpis.ActivePortfolioCount.ToString()"
+                     Icon="@Icons.Material.Filled.PlayArrow" IsLoading="@_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Label="Total AUM" Value="@FormatCurrency(_kpis.TotalAum)"
+                     Icon="@Icons.Material.Filled.AttachMoney" IsLoading="@_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Label="Total PnL" Value="@FormatCurrency(_kpis.TotalPnl)"
+                     Trend="@(FormatTrend(_kpis.TotalPnl))"
+                     Icon="@Icons.Material.Filled.TrendingUp" IsLoading="@_loading" />
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Label="Executed Trades" Value="@_kpis.ExecutedTradeCount.ToString()"
+                     Icon="@Icons.Material.Filled.SwapHoriz" IsLoading="@_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Label="Imported Trades" Value="@_kpis.ImportedTradeCount.ToString()"
+                     Icon="@Icons.Material.Filled.FileDownload" IsLoading="@_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Label="Platform Connections" Value="@($"{_platformDashboard.ActiveConnections}/{_platformDashboard.TotalConnections}")"
+                     Icon="@Icons.Material.Filled.Hub" IsLoading="@_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Label="Avg Sharpe" Value="@_kpis.AvgSharpe.ToString("N2")"
+                     Icon="@Icons.Material.Filled.Speed" IsLoading="@_loading" />
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid>
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-4 mb-4" Style="background: #1e293b; border-radius: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <MudText Typo="Typo.h6" Style="color: white; font-weight: 600;">Platform Connections</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/platform"
+                               StartIcon="@Icons.Material.Filled.Visibility" Size="Size.Small">View All</MudButton>
+                </div>
+                @if (_loading)
+                {
+                    @for (int i = 0; i < 2; i++)
+                    {
+                        <MudSkeleton Animation="Animation.Wave" Height="56px" Class="mb-2" />
+                    }
+                }
+                else if (!_platformDashboard.Connections.Any())
+                {
+                    <MudText Typo="Typo.body2" Style="color: #64748b; text-align: center; padding: 24px 0;">
+                        No platform connections configured.
+                    </MudText>
+                }
+                else
+                {
+                    @foreach (var conn in _platformDashboard.Connections)
+                    {
+                        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #0f172a; border-radius: 8px; margin-bottom: 8px;">
+                            <MudIcon Icon="@GetConnectionIcon(conn.Status)" Size="Size.Small"
+                                     Style="@($"color: {GetConnectionColor(conn.Status)};")" />
+                            <div style="flex: 1;">
+                                <MudText Typo="Typo.body2" Style="color: white; font-weight: 500;">@conn.PlatformName</MudText>
+                                <MudText Typo="Typo.caption" Style="color: #64748b;">@conn.Status</MudText>
+                            </div>
+                            @if (conn.LastDataReceivedAt.HasValue)
+                            {
+                                <MudText Typo="Typo.caption" Style="color: #64748b;">
+                                    Last data: @conn.LastDataReceivedAt.Value.ToString("MMM dd, HH:mm")
+                                </MudText>
+                            }
+                        </div>
+                    }
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4 mb-4" Style="background: #1e293b; border-radius: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <MudText Typo="Typo.h6" Style="color: white; font-weight: 600;">Quick Actions</MudText>
+                </div>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/portfolios"
+                           FullWidth="true" Class="mb-2"
+                           StartIcon="@Icons.Material.Filled.AccountBalance">
+                    View Portfolios
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/platform"
+                           FullWidth="true"
+                           StartIcon="@Icons.Material.Filled.Hub">
+                    Platform Management
+                </MudButton>
+            </MudPaper>
+
+            <MudPaper Class="pa-4" Style="background: #1e293b; border-radius: 12px;">
+                <MudText Typo="Typo.h6" Style="color: white; font-weight: 600; margin-bottom: 12px;">System Health</MudText>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <MudText Typo="Typo.body2" Style="color: #94a3b8;">Platform Status</MudText>
+                        <MudText Typo="Typo.body2" Style="@($"color: {GetStatusColor()};")">
+                            @(_platformDashboard.ActiveConnections > 0 ? "Online" : "Offline")
+                        </MudText>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <MudText Typo="Typo.body2" Style="color: #94a3b8;">Total PnL</MudText>
+                        <MudText Typo="Typo.body2" Style="@($"color: {GetPnlColor()};")">
+                            @FormatCurrency(_platformDashboard.TotalPnL)
+                        </MudText>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <MudText Typo="Typo.body2" Style="color: #94a3b8;">Imported Trades</MudText>
+                        <MudText Typo="Typo.body2" Style="color: white;">@_platformDashboard.TotalTrades</MudText>
+                    </div>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
 </MudContainer>
+
+@code {
+    private bool _loading = true;
+    private DashboardOverview _kpis = new();
+    private PlatformDashboardDto _platformDashboard = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        var period = Certus.Domain.SharedKernel.DateRange.All;
+
+        var portfolios = await PortfolioService.GetAllPortfoliosAsync(new PortfolioFilter(Period: period));
+        _platformDashboard = await PlatformService.GetDashboardAsync();
+
+        var totalAum = portfolios.Sum(p => p.Aum);
+        var totalPnl = portfolios.Sum(p => p.ActualReturn * p.Aum);
+        var avgSharpe = portfolios.Count > 0 ? portfolios.Average(p => p.Sharpe) : 0m;
+        var winRate = portfolios.Count > 0 ? portfolios.Average(p => p.WinRate) : 0m;
+        var executedTradeCount = portfolios.Sum(p => p.TradeCount);
+        var activeCount = portfolios.Count(p => p.Status == PortfolioStatus.Active);
+
+        _kpis = new DashboardOverview
+        {
+            PortfolioCount = portfolios.Count,
+            ActivePortfolioCount = activeCount,
+            TotalAum = totalAum,
+            TotalPnl = totalPnl,
+            ExecutedTradeCount = executedTradeCount,
+            ImportedTradeCount = _platformDashboard.TotalTrades,
+            AvgSharpe = avgSharpe
+        };
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private string FormatCurrency(decimal value) => value switch
+    {
+        >= 1_000_000 => $"${value / 1_000_000:N1}M",
+        >= 1_000 => $"${value / 1_000:N1}K",
+        < 0 => $"-${Math.Abs(value):N0}",
+        _ => $"${value:N0}"
+    };
+
+    private decimal FormatTrend(decimal value) => value >= 0 ? 1m : -1m;
+
+    private string GetConnectionIcon(PlatformConnectionStatus status) => status switch
+    {
+        PlatformConnectionStatus.Connected => Icons.Material.Filled.CheckCircle,
+        PlatformConnectionStatus.Connecting => Icons.Material.Filled.Sync,
+        PlatformConnectionStatus.Reconnecting => Icons.Material.Filled.SyncProblem,
+        PlatformConnectionStatus.Error => Icons.Material.Filled.Error,
+        _ => Icons.Material.Filled.HighlightOff
+    };
+
+    private string GetConnectionColor(PlatformConnectionStatus status) => status switch
+    {
+        PlatformConnectionStatus.Connected => "#22c55e",
+        PlatformConnectionStatus.Connecting => "#eab308",
+        PlatformConnectionStatus.Reconnecting => "#eab308",
+        PlatformConnectionStatus.Error => "#ef4444",
+        _ => "#64748b"
+    };
+
+    private string GetStatusColor()
+    {
+        var status = _platformDashboard.ActiveConnections > 0
+            ? PlatformConnectionStatus.Connected
+            : PlatformConnectionStatus.Disconnected;
+        return GetConnectionColor(status);
+    }
+
+    private string GetPnlColor() => _platformDashboard.TotalPnL >= 0 ? "#22c55e" : "#ef4444";
+
+    private class DashboardOverview
+    {
+        public int PortfolioCount { get; set; }
+        public int ActivePortfolioCount { get; set; }
+        public decimal TotalAum { get; set; }
+        public decimal TotalPnl { get; set; }
+        public int ExecutedTradeCount { get; set; }
+        public int ImportedTradeCount { get; set; }
+        public decimal AvgSharpe { get; set; }
+    }
+}

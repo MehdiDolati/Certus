@@ -45,7 +45,17 @@
                     @_detail.Strategies.Count strategies in portfolio
                 </MudText>
             </div>
-            <div style="display: flex; gap: 8px;">
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <MudSelect T="string" @bind-Value="SelectedPeriod" Label="Period" Variant="Variant.Outlined"
+                           Style="min-width: 130px;" AdornmentColor="Color.Primary" Dense="true">
+                    <MudSelectItem Value="@("1W")">1 Week</MudSelectItem>
+                    <MudSelectItem Value="@("1M")">1 Month</MudSelectItem>
+                    <MudSelectItem Value="@("3M")">3 Months</MudSelectItem>
+                    <MudSelectItem Value="@("6M")">6 Months</MudSelectItem>
+                    <MudSelectItem Value="@("YTD")">Year to Date</MudSelectItem>
+                    <MudSelectItem Value="@("1Y")">1 Year</MudSelectItem>
+                    <MudSelectItem Value="@("ALL")">All</MudSelectItem>
+                </MudSelect>
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
                            OnClick="OpenEditPortfolioDialog">Edit</MudButton>
                 <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
@@ -148,6 +158,13 @@
     private bool _modalVisible;
     private int _activeTab;
 
+    private string _selectedPeriod = "1M";
+    private string SelectedPeriod
+    {
+        get => _selectedPeriod;
+        set { _selectedPeriod = value; _ = LoadData(); }
+    }
+
     private Guid? _tradeStrategyFilter;
     private Guid? TradeStrategyFilter
     {
@@ -171,7 +188,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var period = Certus.Domain.SharedKernel.DateRange.Last30Days;
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        var period = GetPeriod();
         _detail = await PortfolioService.GetPortfolioDetailAsync(Id, period);
 
         if (_detail != null)
@@ -182,7 +207,19 @@
         }
 
         _loading = false;
+        StateHasChanged();
     }
+
+    private Certus.Domain.SharedKernel.DateRange GetPeriod() => SelectedPeriod switch
+    {
+        "1W" => Certus.Domain.SharedKernel.DateRange.Last30Days with { From = DateTime.UtcNow.AddDays(-7) },
+        "1M" => Certus.Domain.SharedKernel.DateRange.Last30Days,
+        "3M" => Certus.Domain.SharedKernel.DateRange.Last90Days,
+        "6M" => new Certus.Domain.SharedKernel.DateRange(DateTime.UtcNow.AddDays(-180), DateTime.UtcNow),
+        "YTD" => Certus.Domain.SharedKernel.DateRange.YearToDate,
+        "1Y" => Certus.Domain.SharedKernel.DateRange.Last1Year,
+        _ => Certus.Domain.SharedKernel.DateRange.All
+    };
 
     private async Task LoadTrades()
     {
@@ -251,8 +288,7 @@
     {
         await PortfolioService.UpdateAsync(Id, new UpdatePortfolioRequest(
             model.Name, model.Description, model.TargetReturn, model.TargetSharpe, model.AllocatedCapital));
-        _detail = await PortfolioService.GetPortfolioDetailAsync(Id, Certus.Domain.SharedKernel.DateRange.Last30Days);
-        StateHasChanged();
+        await LoadData();
     }
 
     private async Task DeletePortfolio()
@@ -274,9 +310,7 @@
     {
         await StrategyService.CreateAsync(new CreateStrategyRequest(
             Id, model.Name, model.Type, model.TargetReturn, model.Weight));
-        _detail = await PortfolioService.GetPortfolioDetailAsync(Id, Certus.Domain.SharedKernel.DateRange.Last30Days);
-        BuildStrategyPnlPoints();
-        StateHasChanged();
+        await LoadData();
     }
 
     private bool _editStrategyDialogVisible;
@@ -300,16 +334,12 @@
     {
         await StrategyService.UpdateAsync(_editingStrategyId, new UpdateStrategyRequest(
             model.Name, model.Type, model.TargetReturn, model.Weight));
-        _detail = await PortfolioService.GetPortfolioDetailAsync(Id, Certus.Domain.SharedKernel.DateRange.Last30Days);
-        BuildStrategyPnlPoints();
-        StateHasChanged();
+        await LoadData();
     }
 
     private async Task DeleteStrategy(Guid strategyId)
     {
         await StrategyService.DeleteAsync(strategyId);
-        _detail = await PortfolioService.GetPortfolioDetailAsync(Id, Certus.Domain.SharedKernel.DateRange.Last30Days);
-        BuildStrategyPnlPoints();
-        StateHasChanged();
+        await LoadData();
     }
 }

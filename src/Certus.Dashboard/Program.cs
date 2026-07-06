@@ -2,6 +2,7 @@ using Certus.Dashboard.Components;
 using Certus.Application.Portfolios;
 using Certus.Application.Strategies;
 using Certus.Application.Trading;
+using Certus.Application.Platform;
 using Certus.Infrastructure;
 using Certus.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +15,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<IPortfolioService, Certus.Application.Portfolios.PortfolioService>();
 builder.Services.AddScoped<IStrategyService, Certus.Application.Strategies.StrategyService>();
 builder.Services.AddScoped<ITradeService, Certus.Application.Trading.TradeService>();
+builder.Services.AddScoped<IPlatformService, Certus.Application.Platform.PlatformService>();
 
 builder.Services.AddMudServices();
 builder.Services.AddRazorComponents()

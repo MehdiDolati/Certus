@@ -14,6 +14,7 @@ public class TradeServiceTests
 {
     private readonly Mock<Certus.Domain.Execution.Repositories.ITradeRepository> _tradeRepo = new();
     private readonly Mock<Certus.Domain.Evaluation.Repositories.IPerformanceSnapshotRepository> _snapshotRepo = new();
+    private readonly Mock<Certus.Domain.Strategy.Repositories.IStrategyDefinitionRepository> _strategyRepo = new();
 
     [Fact]
     public async Task GetTradesAsync_Should_Return_Empty_When_No_Trades()
@@ -107,6 +108,10 @@ public class TradeServiceTests
         var trade = CreateClosedTrade(strategyId, portfolioId, "ETHUSD", TradeSide.Short, 3000m, 2800m, 2m, "Short on resistance");
 
         _tradeRepo.Setup(r => r.GetByIdAsync(trade.Id)).ReturnsAsync(trade);
+        _tradeRepo.Setup(r => r.GetByPortfolioIdAsync(portfolioId))
+            .ReturnsAsync(new List<Domain.Execution.Aggregates.Trade> { trade });
+        _tradeRepo.Setup(r => r.GetByStrategyIdAsync(strategyId))
+            .ReturnsAsync(new List<Domain.Execution.Aggregates.Trade> { trade });
         var service = CreateService();
 
         var result = await service.GetTradeDetailAsync(trade.Id);
@@ -213,7 +218,7 @@ public class TradeServiceTests
 
     private TradeService CreateService()
     {
-        return new TradeService(_tradeRepo.Object, _snapshotRepo.Object);
+        return new TradeService(_tradeRepo.Object, _snapshotRepo.Object, _strategyRepo.Object);
     }
 
     private static Domain.Execution.Aggregates.Trade CreateClosedTrade(
