@@ -3,6 +3,7 @@ using Certus.Domain.SharedKernel;
 using Certus.Domain.Execution.Enums;
 using Certus.Domain.Execution.Repositories;
 using Certus.Domain.Evaluation.Repositories;
+using Certus.Domain.Strategy.Repositories;
 
 namespace Certus.Application.Trading;
 
@@ -10,11 +11,16 @@ public class TradeService : ITradeService
 {
     private readonly ITradeRepository _tradeRepository;
     private readonly IPerformanceSnapshotRepository _performanceSnapshotRepository;
+    private readonly IStrategyDefinitionRepository _strategyRepository;
 
-    public TradeService(ITradeRepository tradeRepository, IPerformanceSnapshotRepository performanceSnapshotRepository)
+    public TradeService(
+        ITradeRepository tradeRepository,
+        IPerformanceSnapshotRepository performanceSnapshotRepository,
+        IStrategyDefinitionRepository strategyRepository)
     {
         _tradeRepository = tradeRepository;
         _performanceSnapshotRepository = performanceSnapshotRepository;
+        _strategyRepository = strategyRepository;
     }
 
     public async Task<PaginatedResult<TradeDto>> GetTradesAsync(TradeFilter filter)
@@ -33,9 +39,11 @@ public class TradeService : ITradeService
             filter.Side, filter.Status, dateFrom, dateTo, filter.Search,
             filter.Page, filter.PageSize);
 
+        var strategyNames = await ResolveStrategyNames(trades.Select(t => t.StrategyId).Distinct());
+
         var items = trades.Select(t => new TradeDto(
             t.Id,
-            string.Empty,
+            strategyNames.GetValueOrDefault(t.StrategyId, string.Empty),
             t.Symbol.Value,
             t.Side,
             t.EntryTime,
@@ -58,9 +66,12 @@ public class TradeService : ITradeService
         var trade = await _tradeRepository.GetByIdAsync(tradeId);
         if (trade is null) return null;
 
+        var strategyNames = await ResolveStrategyNames([trade.StrategyId]);
+        var strategyName = strategyNames.GetValueOrDefault(trade.StrategyId, string.Empty);
+
         var tradeDto = new TradeDto(
             trade.Id,
-            string.Empty,
+            strategyName,
             trade.Symbol.Value,
             trade.Side,
             trade.EntryTime,
@@ -75,7 +86,13 @@ public class TradeService : ITradeService
             trade.Slippage,
             trade.Status);
 
-        return new TradeDetailDto(tradeDto, trade.AgentReason, 0m, 0m);
+        var portfolioTrades = await _tradeRepository.GetByPortfolioIdAsync(trade.PortfolioId);
+        var portfolioImpact = portfolioTrades.Where(t => t.Status == TradeStatus.Closed).Sum(t => t.PnL);
+
+        var strategyTrades = await _tradeRepository.GetByStrategyIdAsync(trade.StrategyId);
+        var strategyImpact = strategyTrades.Where(t => t.Status == TradeStatus.Closed).Sum(t => t.PnL);
+
+        return new TradeDetailDto(tradeDto, trade.AgentReason, portfolioImpact, strategyImpact);
     }
 
     public async Task<List<PerformanceSnapshotDto>> GetCumulativePnlAsync(
@@ -99,5 +116,20 @@ public class TradeService : ITradeService
             return new PerformanceSnapshotDto(
                 s.Date, s.ActualReturn, s.SupposedReturn, cumulative, s.Equity, s.Drawdown, s.Sharpe);
         }).ToList();
+    }
+
+    private async Task<Dictionary<Guid, string>> ResolveStrategyNames(IEnumerable<Guid> strategyIds)
+    {
+        var idList = strategyIds.Where(id => id != Guid.Empty).ToList();
+        if (idList.Count == 0) return [];
+
+        var strategies = new List<Domain.Strategy.Aggregates.StrategyDefinition>();
+        foreach (var id in idList)
+        {
+            var s = await _strategyRepository.GetByIdAsync(id);
+            if (s != null) strategies.Add(s);
+        }
+
+        return strategies.ToDictionary(s => s.Id, s => s.Name);
     }
 }

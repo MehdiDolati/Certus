@@ -1,10 +1,17 @@
-<MudNavMenu Style="padding: 8px;">
-    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home"
-                 Style="color: #94a3b8;">
-        Home
+<MudNavMenu Style="padding: 12px 8px;">
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.SpaceDashboard"
+                 Style="color: #94a3b8; border-radius: 10px; margin-bottom: 4px;"
+                 ActiveStyle="color: white; background: rgba(59, 130, 246, 0.12);">
+        Dashboard
     </MudNavLink>
     <MudNavLink Href="/portfolios" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.AccountBalance"
-                 Style="color: #94a3b8;">
+                 Style="color: #94a3b8; border-radius: 10px; margin-bottom: 4px;"
+                 ActiveStyle="color: white; background: rgba(59, 130, 246, 0.12);">
         Portfolios
+    </MudNavLink>
+    <MudNavLink Href="/platform" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Hub"
+                 Style="color: #94a3b8; border-radius: 10px;"
+                 ActiveStyle="color: white; background: rgba(236, 72, 153, 0.12);">
+        Platform
     </MudNavLink>
 </MudNavMenu>

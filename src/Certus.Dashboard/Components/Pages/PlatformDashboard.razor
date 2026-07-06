@@ -1,0 +1,199 @@
+@page "/platform"
+@rendermode InteractiveServer
+@inject IPlatformService PlatformService
+@inject NavigationManager Nav
+
+<PageTitle>Platform - Certus</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="pa-6">
+    <div style="margin-bottom: 32px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+            <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #ec4899, #8b5cf6); display: flex; align-items: center; justify-content: center;">
+                <MudIcon Icon="@Icons.Material.Filled.Hub" Size="Size.Medium" Style="color: white;" />
+            </div>
+            <div>
+                <MudText Typo="Typo.h4" Style="color: white; font-weight: 800; letter-spacing: -0.02em;">Platform Management</MudText>
+                <MudText Typo="Typo.body2" Style="color: #64748b;">Monitor connections, imported trades, and strategy data</MudText>
+            </div>
+        </div>
+    </div>
+
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Label="Total Connections" Value="@_dashboard.TotalConnections.ToString()"
+                     Icon="@Icons.Material.Filled.Hub" IconColor="#ec4899" IconBgColor="rgba(236, 72, 153, 0.15)"
+                     IsLoading="@_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Label="Active Connections" Value="@_dashboard.ActiveConnections.ToString()"
+                     Icon="@Icons.Material.Filled.CheckCircle" IconColor="#00ff88" IconBgColor="rgba(0, 255, 136, 0.12)"
+                     IsLoading="@_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Label="Imported Trades" Value="@_dashboard.TotalTrades.ToString()"
+                     Icon="@Icons.Material.Filled.FileDownload" IconColor="#06b6d4" IconBgColor="rgba(6, 182, 212, 0.12)"
+                     IsLoading="@_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Label="Total PnL" Value="@FormatCurrency(_dashboard.TotalPnL)"
+                     Trend="@(_dashboard.TotalPnL >= 0 ? 1m : -1m)"
+                     Icon="@Icons.Material.Filled.TrendingUp" IconColor="@(_dashboard.TotalPnL >= 0 ? "#00ff88" : "#ff4466")" IconBgColor="@(_dashboard.TotalPnL >= 0 ? "rgba(0, 255, 136, 0.12)" : "rgba(255, 68, 102, 0.12)")"
+                     IsLoading="@_loading" />
+        </MudItem>
+    </MudGrid>
+
+    @if (_loading)
+    {
+        <MudPaper Class="pa-6" Style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 16px;">
+            @for (int i = 0; i < 3; i++)
+            {
+                <MudSkeleton Animation="Animation.Wave" Height="88px" Class="mb-2" Style="border-radius: 12px;" />
+            }
+        </MudPaper>
+    }
+    else if (!_dashboard.Connections.Any())
+    {
+        <MudPaper Class="pa-12" Style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 16px; text-align: center;">
+            <div style="width: 64px; height: 64px; border-radius: 16px; background: rgba(71, 85, 105, 0.2); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                <MudIcon Icon="@Icons.Material.Filled.Hub" Size="Size.Large" Style="color: #475569;" />
+            </div>
+            <MudText Typo="Typo.h6" Style="color: #94a3b8;">No platform connections</MudText>
+            <MudText Typo="Typo.body2" Style="color: #475569; margin-top: 4px;">Connect to a trading platform to start importing data.</MudText>
+        </MudPaper>
+    }
+    else
+    {
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(236, 72, 153, 0.15); display: flex; align-items: center; justify-content: center;">
+                <MudIcon Icon="@Icons.Material.Filled.Link" Size="Size.Small" Style="color: #ec4899;" />
+            </div>
+            <MudText Typo="Typo.h6" Style="color: white; font-weight: 700;">Connections</MudText>
+        </div>
+
+        @foreach (var conn in _dashboard.Connections)
+        {
+            <MudPaper Class="pa-5 mb-3" Style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 16px;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 52px; height: 52px; border-radius: 14px; background: @(GetStatusBg(conn.Status)); display: flex; align-items: center; justify-content: center;">
+                        <MudIcon Icon="@Icons.Material.Filled.Hub" Size="Size.Medium"
+                                 Style="@($"color: {GetStatusTextColor(conn.Status)};")" />
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <MudText Typo="Typo.h6" Style="color: white; font-weight: 700;">@conn.PlatformName</MudText>
+                            <div style="display: flex; align-items: center; gap: 6px; background: @(GetStatusBg(conn.Status)); padding: 3px 10px; border-radius: 6px;">
+                                <div style="width: 6px; height: 6px; border-radius: 50%; background: @(GetStatusTextColor(conn.Status));"></div>
+                                <MudText Typo="Typo.caption" Style="@($"color: {GetStatusTextColor(conn.Status)}; font-weight: 600; font-size: 0.7rem;")">
+                                    @conn.Status
+                                </MudText>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 24px; margin-top: 6px;">
+                            @if (conn.ConnectedAt.HasValue)
+                            {
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" Style="color: #475569;" />
+                                    <MudText Typo="Typo.caption" Style="color: #475569;">
+                                        Connected: @conn.ConnectedAt.Value.ToString("MMM dd, yyyy HH:mm")
+                                    </MudText>
+                                </div>
+                            }
+                            @if (conn.LastDataReceivedAt.HasValue)
+                            {
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Sync" Size="Size.Small" Style="color: #475569;" />
+                                    <MudText Typo="Typo.caption" Style="color: #475569;">
+                                        Last data: @conn.LastDataReceivedAt.Value.ToString("MMM dd, yyyy HH:mm")
+                                    </MudText>
+                                </div>
+                            }
+                            @if (conn.RetryCount > 0)
+                            {
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small" Style="color: #f59e0b;" />
+                                    <MudText Typo="Typo.caption" Style="color: #f59e0b; font-weight: 500;">
+                                        Retries: @conn.RetryCount
+                                    </MudText>
+                                </div>
+                            }
+                        </div>
+                        @if (!string.IsNullOrEmpty(conn.ErrorMessage))
+                        {
+                            <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px; background: rgba(255, 68, 102, 0.08); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255, 68, 102, 0.15);">
+                                <MudIcon Icon="@Icons.Material.Filled.Error" Size="Size.Small" Style="color: #ff4466;" />
+                                <MudText Typo="Typo.caption" Style="color: #ff4466;">@conn.ErrorMessage</MudText>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </MudPaper>
+        }
+
+        @if (_dashboard.TotalPortfolios > 0)
+        {
+            <div style="display: flex; align-items: center; gap: 10px; margin-top: 28px; margin-bottom: 16px;">
+                <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(168, 85, 247, 0.15); display: flex; align-items: center; justify-content: center;">
+                    <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Small" Style="color: #a855f7;" />
+                </div>
+                <MudText Typo="Typo.h6" Style="color: white; font-weight: 700;">Imported Portfolios</MudText>
+            </div>
+            <MudPaper Class="pa-4" Style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 16px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(168, 85, 247, 0.12); display: flex; align-items: center; justify-content: center;">
+                        <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Small" Style="color: #a855f7;" />
+                    </div>
+                    <MudText Typo="Typo.body1" Style="color: white; font-weight: 500;">
+                        @_dashboard.TotalPortfolios portfolio(s) imported from platform
+                    </MudText>
+                </div>
+            </MudPaper>
+        }
+    }
+</MudContainer>
+
+@code {
+    private bool _loading = true;
+    private PlatformDashboardDto _dashboard = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        _dashboard = await PlatformService.GetDashboardAsync();
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private string FormatCurrency(decimal value) => value switch
+    {
+        >= 1_000_000 => $"${value / 1_000_000:N1}M",
+        >= 1_000 => $"${value / 1_000:N1}K",
+        < 0 => $"-${Math.Abs(value):N0}",
+        _ => $"${value:N0}"
+    };
+
+    private string GetStatusBg(PlatformConnectionStatus status) => status switch
+    {
+        PlatformConnectionStatus.Connected => "rgba(0, 255, 136, 0.12)",
+        PlatformConnectionStatus.Connecting => "rgba(245, 158, 11, 0.12)",
+        PlatformConnectionStatus.Reconnecting => "rgba(245, 158, 11, 0.12)",
+        PlatformConnectionStatus.Error => "rgba(255, 68, 102, 0.12)",
+        _ => "rgba(71, 85, 105, 0.12)"
+    };
+
+    private string GetStatusTextColor(PlatformConnectionStatus status) => status switch
+    {
+        PlatformConnectionStatus.Connected => "#00ff88",
+        PlatformConnectionStatus.Connecting => "#f59e0b",
+        PlatformConnectionStatus.Reconnecting => "#f59e0b",
+        PlatformConnectionStatus.Error => "#ff4466",
+        _ => "#475569"
+    };
+}

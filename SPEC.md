@@ -15,6 +15,7 @@ This project follows **spec-driven development**. Individual specs live in the `
 | [Module Boundaries](specs/architecture/module-boundaries.md) | `specs/architecture/` | Module isolation, future extraction |
 | [Domain Architecture](specs/architecture/domain-architecture.md) | `specs/architecture/` | 6 bounded contexts, aggregate roots, domain events |
 | [Platform Integration](specs/features/platform-integration.md) | `specs/features/` | Plugin architecture, file-based data import, MT4 EA integration |
+| [Dashboard Real Data](specs/features/dashboard-real-data.md) | `specs/features/` | Wire UI to real DB data, Home overview, Platform page |
 | [MetaTrader 4 Expert Advisor](specs/features/mt4-expert-advisor.md) | `specs/features/` | MQ4 EA for strategy data collection and file output |
 | [Trade Execution](specs/features/trade-execution.md) | `specs/features/` | Trade lifecycle, order management, PnL calculation |
 | [Evaluation & Feedback](specs/features/evaluation-feedback.md) | `specs/features/` | Performance reports, benchmarking, strategy scoring |

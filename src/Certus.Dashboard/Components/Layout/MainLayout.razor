@@ -6,22 +6,32 @@
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Style="background: #0f172a; border-bottom: 1px solid #1e293b;" Elevation="0">
+    <MudAppBar Style="background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid #1e293b;" Elevation="0">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit"
-                       OnClick="ToggleDrawer" />
-        <MudText Typo="Typo.h6" Style="color: white; font-weight: 700; letter-spacing: 0.05em;">
-            CERTUS
-        </MudText>
+                       OnClick="ToggleDrawer" Style="color: #64748b;" />
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); display: flex; align-items: center; justify-content: center;">
+                <MudIcon Icon="@Icons.Material.Filled.CandlestickChart" Size="Size.Small" Style="color: white;" />
+            </div>
+            <MudText Typo="Typo.h6" Style="color: white; font-weight: 800; letter-spacing: -0.01em;">
+                CERTUS
+            </MudText>
+        </div>
         <MudSpacer />
-        <MudText Typo="Typo.body2" Style="color: #64748b;">Autonomous Trading Platform</MudText>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <div style="width: 8px; height: 8px; border-radius: 50%; background: #00ff88; box-shadow: 0 0 8px #00ff88;"></div>
+                <MudText Typo="Typo.caption" Style="color: #64748b;">System Online</MudText>
+            </div>
+        </div>
     </MudAppBar>
 
     <MudDrawer @bind-Open="@_drawerOpen" Variant="DrawerVariant.Mini"
-               Style="background: #0f172a; border-right: 1px solid #1e293b;">
+               Style="background: rgba(15, 23, 42, 0.95); border-right: 1px solid #1e293b;">
         <NavMenu />
     </MudDrawer>
 
-    <MudMainContent Style="background: #0f172a; min-height: 100vh;">
+    <MudMainContent Style="background: #0a0f1a; min-height: 100vh;">
         @Body
     </MudMainContent>
 </MudLayout>
@@ -35,8 +45,22 @@
         {
             Default = new Default()
             {
-                FontFamily = new[] { "Roboto", "sans-serif" }
+                FontFamily = new[] { "Inter", "Roboto", "sans-serif" }
             }
+        },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = "#3b82f6",
+            Secondary = "#8b5cf6",
+            Success = "#00ff88",
+            Warning = "#f59e0b",
+            Error = "#ff4466",
+            Background = "#0a0f1a",
+            Surface = "#1e293b",
+            AppbarBackground = "#0f172a",
+            DrawerBackground = "#0f172a",
+            TextPrimary = "#ffffff",
+            TextSecondary = "#94a3b8"
         }
     };
 
