@@ -8,6 +8,14 @@ public class PluginLoader : IPlatformPluginLoader
     private readonly List<IPlatformPlugin> _plugins = new();
     private readonly object _lock = new();
 
+    public PluginLoader(IEnumerable<IPlatformPlugin> plugins)
+    {
+        foreach (var plugin in plugins)
+        {
+            RegisterPlugin(plugin);
+        }
+    }
+
     public IReadOnlyList<IPlatformPlugin> GetAllPlugins()
     {
         lock (_lock)

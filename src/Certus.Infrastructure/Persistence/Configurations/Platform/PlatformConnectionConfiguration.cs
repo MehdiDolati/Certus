@@ -1,6 +1,4 @@
 using Certus.Domain.Platform.Aggregates;
-using Certus.Domain.Platform.Enums;
-using Certus.Domain.Platform.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,9 +11,8 @@ public class PlatformConnectionConfiguration : IEntityTypeConfiguration<Platform
         builder.HasKey(p => p.Id);
         builder.Property(p => p.PlatformId).HasMaxLength(100).IsRequired();
         builder.Property(p => p.PlatformName).HasMaxLength(200).IsRequired();
-        builder.Property(p => p.Status).HasConversion<string>().HasMaxLength(50);
-        builder.Property(p => p.ErrorMessage).HasMaxLength(2000);
-        
+        builder.Property(p => p.CreatedAt).IsRequired();
+
         builder.OwnsOne(p => p.Config, c =>
         {
             c.Property(c => c.PlatformType).HasColumnName("ConfigPlatformType").HasConversion<string>().HasMaxLength(50);

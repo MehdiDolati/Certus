@@ -69,6 +69,7 @@ public static class DependencyInjection
         services.AddScoped<IPlatformDataRepository, PlatformDataRepository>();
         services.AddScoped<IImportedTradeRepository, ImportedTradeRepository>();
         services.AddSingleton<IFileImportService, FileImportService>();
+        services.AddSingleton<IConnectionStatusStore, InMemoryConnectionStatusStore>();
         services.AddSingleton<PluginLoader>();
         services.AddSingleton<IPlatformPluginLoader>(sp => sp.GetRequiredService<PluginLoader>());
         services.AddSingleton<IPlatformPlugin, Mt4Plugin>();

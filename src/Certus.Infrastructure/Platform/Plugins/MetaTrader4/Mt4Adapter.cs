@@ -19,13 +19,42 @@ public class Mt4Adapter : IPlatformAdapter
 
     public Task<PlatformConnectionResult> ConnectAsync(PlatformConfig config)
     {
-        // For file-based connection, we just verify the file exists or can be created
         if (!string.IsNullOrEmpty(config.FilePath))
         {
-            var directory = Path.GetDirectoryName(config.FilePath);
-            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            // Determine if path is a file or directory
+            if (File.Exists(config.FilePath))
             {
-                Directory.CreateDirectory(directory);
+                // It's a file — check the parent directory exists
+                var dir = Path.GetDirectoryName(config.FilePath);
+                if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir))
+                {
+                    return Task.FromResult(new PlatformConnectionResult
+                    {
+                        Success = false,
+                        ErrorMessage = $"Directory does not exist: {dir}"
+                    });
+                }
+            }
+            else if (Directory.Exists(config.FilePath))
+            {
+                // It's a directory — look for portfolio_status.json inside
+                var portfolioFile = Path.Combine(config.FilePath, "portfolio_status.json");
+                if (!File.Exists(portfolioFile))
+                {
+                    return Task.FromResult(new PlatformConnectionResult
+                    {
+                        Success = false,
+                        ErrorMessage = $"File not found: {portfolioFile}. Ensure the EA is running on MetaTrader."
+                    });
+                }
+            }
+            else
+            {
+                return Task.FromResult(new PlatformConnectionResult
+                {
+                    Success = false,
+                    ErrorMessage = $"Path not found: {config.FilePath}"
+                });
             }
         }
 

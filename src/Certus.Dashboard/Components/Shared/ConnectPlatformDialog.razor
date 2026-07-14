@@ -1,0 +1,72 @@
+<MudDialog @bind-Visible="Visible" Options="new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true }">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color: white;">Connect Platform</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudSelect T="string" @bind-Value="Model.PlatformId" Label="Platform" Variant="Variant.Outlined" Required="true"
+                           Error="@(!string.IsNullOrEmpty(_platformError))" ErrorText="@_platformError">
+                    <MudSelectItem Value="@("MetaTrader4")">MetaTrader 4</MudSelectItem>
+                    <MudSelectItem Value="@("MetaTrader5")">MetaTrader 5</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="Model.FilePath" Label="Shared Folder Path" Variant="Variant.Outlined" Required="true"
+                              Error="@(!string.IsNullOrEmpty(_pathError))" ErrorText="@_pathError"
+                              Placeholder="C:\Users\...\MQL4\Files\Certus" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudCheckBox @bind-Value="Model.UseFileWatcher" Label="Watch files for real-time updates" Color="Color.Primary" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
+                   Disabled="@_submitting">
+            @if (_submitting) { <MudProgressCircular Size="Size.Small" Indeterminate="true" /> }
+            else { <text>Connect</text> }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
+    [Parameter] public ConnectModel Model { get; set; } = new();
+    [Parameter] public EventCallback<ConnectModel> OnSubmit { get; set; }
+
+    private bool _submitting;
+    private string? _platformError;
+    private string? _pathError;
+
+    private async Task Submit()
+    {
+        _platformError = string.IsNullOrWhiteSpace(Model.PlatformId) ? "Platform is required" : null;
+        _pathError = string.IsNullOrWhiteSpace(Model.FilePath) ? "Shared folder path is required" : null;
+        if (_platformError is not null || _pathError is not null) return;
+
+        _submitting = true;
+        StateHasChanged();
+
+        await OnSubmit.InvokeAsync(Model);
+
+        _submitting = false;
+        Visible = false;
+        await VisibleChanged.InvokeAsync(false);
+    }
+
+    private async Task Cancel()
+    {
+        Visible = false;
+        await VisibleChanged.InvokeAsync(false);
+    }
+
+    public class ConnectModel
+    {
+        public string PlatformId { get; set; } = "MetaTrader4";
+        public string FilePath { get; set; } = string.Empty;
+        public bool UseFileWatcher { get; set; } = true;
+    }
+}

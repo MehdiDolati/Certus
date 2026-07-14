@@ -1,5 +1,4 @@
 using Certus.Domain.Platform.Aggregates;
-using Certus.Domain.Platform.Enums;
 using Certus.Domain.Platform.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,16 +30,17 @@ public class PlatformConnectionRepository : IPlatformConnectionRepository
             .ToListAsync();
     }
 
-    public async Task<IReadOnlyList<PlatformConnection>> GetByStatusAsync(PlatformConnectionStatus status)
+    public async Task<IReadOnlyList<PlatformConnection>> GetByPlatformAndPathAsync(string platformId, string filePath)
     {
         return await _db.PlatformConnections.AsNoTracking()
-            .Where(p => p.Status == status)
+            .Where(p => p.PlatformId == platformId && p.Config.FilePath == filePath)
             .ToListAsync();
     }
 
     public async Task AddAsync(PlatformConnection connection)
     {
         await _db.PlatformConnections.AddAsync(connection);
+        await _db.SaveChangesAsync();
     }
 
     public void Update(PlatformConnection connection)

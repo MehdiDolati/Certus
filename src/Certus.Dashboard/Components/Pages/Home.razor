@@ -1,9 +1,11 @@
 @page "/"
 @rendermode InteractiveServer
+@using Certus.Application.Platform.DTOs
 @inject IPortfolioService PortfolioService
 @inject IPlatformService PlatformService
 @inject ITradeService TradeService
 @inject NavigationManager Nav
+@implements IDisposable
 
 <PageTitle>Certus Dashboard</PageTitle>
 
@@ -182,17 +184,39 @@
 
 @code {
     private bool _loading = true;
+    private bool _disposed;
     private DashboardOverview _kpis = new();
     private PlatformDashboardDto _platformDashboard = new();
+    private System.Threading.Timer? _refreshTimer;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
+
+        _refreshTimer = new System.Threading.Timer(async _ =>
+        {
+            if (_disposed) return;
+            try
+            {
+                await InvokeAsync(async () =>
+                {
+                    if (_disposed) return;
+                    await LoadData();
+                });
+            }
+            catch (ObjectDisposedException) { }
+        }, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _refreshTimer?.Dispose();
     }
 
     private async Task LoadData()
     {
-        _loading = true;
+        _loading = _kpis.PortfolioCount == 0;
         StateHasChanged();
 
         var period = Certus.Domain.SharedKernel.DateRange.All;
@@ -226,9 +250,11 @@
     {
         >= 1_000_000 => $"${value / 1_000_000:N1}M",
         >= 1_000 => $"${value / 1_000:N1}K",
-        < 0 => $"-${Math.Abs(value):N0}",
-        _ => $"${value:N0}"
+        _ => FormatCurrencyDefault(value)
     };
+
+    private static string FormatCurrencyDefault(decimal value) =>
+        Math.Abs(value) != value ? $"-${Math.Abs(value):N0}" : $"${value:N0}";
 
     private decimal FormatTrend(decimal value) => value >= 0 ? 1m : -1m;
 
