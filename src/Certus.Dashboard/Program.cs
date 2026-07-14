@@ -27,14 +27,12 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CertusDbContext>();
 
-    // Recreate DB schema when model changes (development only)
-    if (app.Environment.IsDevelopment())
+    // Skip migrations and seeding in test environment (tests use EnsureCreated with SQLite)
+    if (!app.Environment.IsEnvironment("Testing"))
     {
-        await db.Database.EnsureDeletedAsync();
+        await MigrateWithBootstrapAsync(db);
+        await SeedData.SeedAsync(db);
     }
-
-    await db.Database.EnsureCreatedAsync();
-    await SeedData.SeedAsync(db);
 }
 
 if (!app.Environment.IsDevelopment())
@@ -52,3 +50,53 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+
+static async Task MigrateWithBootstrapAsync(CertusDbContext db)
+{
+    var connection = db.Database.GetDbConnection();
+    await connection.OpenAsync();
+
+    // Check if InitialCreate migration is already recorded
+    bool initialCreateApplied = false;
+    using (var cmd = connection.CreateCommand())
+    {
+        cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '__EFMigrationsHistory'";
+        var historyExists = (int)cmd.ExecuteScalar()! > 0;
+        if (historyExists)
+        {
+            using var checkCmd = connection.CreateCommand();
+            checkCmd.CommandText = "SELECT COUNT(*) FROM [__EFMigrationsHistory] WHERE [MigrationId] = '20260714194959_InitialCreate'";
+            initialCreateApplied = (int)checkCmd.ExecuteScalar()! > 0;
+        }
+    }
+
+    if (!initialCreateApplied)
+    {
+        // Tables exist from EnsureCreated but migration not recorded — create history table if needed and mark as applied
+        using (var cmd = connection.CreateCommand())
+        {
+            cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '__EFMigrationsHistory'";
+            if ((int)cmd.ExecuteScalar()! == 0)
+            {
+                using var createCmd = connection.CreateCommand();
+                createCmd.CommandText = @"
+                    CREATE TABLE [__EFMigrationsHistory] (
+                        [MigrationId] nvarchar(150) NOT NULL,
+                        [ProductVersion] nvarchar(32) NOT NULL,
+                        CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
+                    )";
+                createCmd.ExecuteNonQuery();
+            }
+        }
+
+        var version = typeof(DbContext).Assembly.GetName().Version?.ToString() ?? "9.0.0";
+        using var insertCmd = connection.CreateCommand();
+        insertCmd.CommandText = "INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES (@id, @ver)";
+        insertCmd.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@id", "20260714194959_InitialCreate"));
+        insertCmd.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@ver", version));
+        insertCmd.ExecuteNonQuery();
+    }
+
+    await connection.CloseAsync();
+    await db.Database.MigrateAsync();
+}
