@@ -11,7 +11,6 @@
 //+------------------------------------------------------------------+
 void CertusEnsureDirectory()
 {
-   string path = TerminalInfoString(TERMINAL_DATA_PATH) + "\\Files\\" + CertusOutputDir;
    if(!FolderCreate(CertusOutputDir, FILE_COMMON))
    {
       // Directory may already exist, that's fine

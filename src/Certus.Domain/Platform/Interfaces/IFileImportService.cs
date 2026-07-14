@@ -5,6 +5,7 @@ public interface IFileImportService : IDisposable
     void StartWatching(Guid connectionId, string filePath);
     void StopWatching(Guid connectionId);
     bool IsWatching(Guid connectionId);
+    DateTime? GetLastModifiedTime(Guid connectionId);
     Task<string?> ReadFileAsync(string filePath);
     event EventHandler<FileImportEventArgs>? FileChanged;
 }

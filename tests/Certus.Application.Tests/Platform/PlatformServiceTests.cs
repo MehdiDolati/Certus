@@ -8,6 +8,7 @@ using Certus.Domain.Platform.Repositories;
 using Certus.Domain.Platform.ValueObjects;
 using Certus.Domain.RiskAndPortfolio.Repositories;
 using Certus.Domain.SharedKernel;
+using Certus.Infrastructure.Platform;
 using FluentAssertions;
 using Moq;
 
@@ -21,6 +22,7 @@ public class PlatformServiceTests
     private readonly Mock<IPortfolioRepository> _portfolioRepoMock;
     private readonly Mock<IImportedTradeRepository> _tradeRepoMock;
     private readonly Mock<IFileImportService> _fileImportServiceMock;
+    private readonly InMemoryConnectionStatusStore _statusStore;
     private readonly Mock<IDomainEventDispatcher> _eventDispatcherMock;
     private readonly PlatformService _sut;
 
@@ -32,6 +34,7 @@ public class PlatformServiceTests
         _portfolioRepoMock = new Mock<IPortfolioRepository>();
         _tradeRepoMock = new Mock<IImportedTradeRepository>();
         _fileImportServiceMock = new Mock<IFileImportService>();
+        _statusStore = new InMemoryConnectionStatusStore();
         _eventDispatcherMock = new Mock<IDomainEventDispatcher>();
 
         _sut = new PlatformService(
@@ -41,6 +44,7 @@ public class PlatformServiceTests
             _portfolioRepoMock.Object,
             _tradeRepoMock.Object,
             _fileImportServiceMock.Object,
+            _statusStore,
             _eventDispatcherMock.Object);
     }
 
@@ -59,6 +63,8 @@ public class PlatformServiceTests
             .ReturnsAsync(new PlatformConnectionResult { Success = true, ConnectedAt = DateTime.UtcNow });
 
         _pluginLoaderMock.Setup(l => l.GetPluginForPlatform("metatrader4")).Returns(pluginMock.Object);
+        _connectionRepoMock.Setup(r => r.GetByPlatformAndPathAsync("metatrader4", @"C:\MT4\Data\portfolio.json"))
+            .ReturnsAsync(new List<PlatformConnection>());
         _connectionRepoMock.Setup(r => r.AddAsync(It.IsAny<PlatformConnection>())).Returns(Task.CompletedTask);
 
         var request = new ConnectPlatformRequest
@@ -91,15 +97,16 @@ public class PlatformServiceTests
     }
 
     [Fact]
-    public async Task DisconnectAsync_Should_Stop_Watching_And_Disconnect()
+    public async Task DisconnectAsync_Should_Stop_Watching_And_Update_Status_Store()
     {
         var connection = CreateConnection();
         _connectionRepoMock.Setup(r => r.GetByIdAsync(connection.Id)).ReturnsAsync(connection);
+        _statusStore.Set(connection.Id, ConnectionStatus.Disconnected.WithConnected());
 
         await _sut.DisconnectAsync(connection.Id);
 
         _fileImportServiceMock.Verify(f => f.StopWatching(connection.Id), Times.Once);
-        _connectionRepoMock.Verify(r => r.Update(It.IsAny<PlatformConnection>()), Times.Once);
+        _statusStore.Get(connection.Id).State.Should().Be(PlatformConnectionStatus.Disconnected);
     }
 
     [Fact]
@@ -314,6 +321,301 @@ public class PlatformServiceTests
 
         var act = () => _sut.DisconnectAsync(Guid.NewGuid());
         await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task ConnectAsync_Should_Return_Existing_Connection_When_Same_Platform_And_Path()
+    {
+        // Arrange
+        var existingConnection = CreateConnection();
+        _statusStore.Set(existingConnection.Id, ConnectionStatus.Disconnected.WithConnected());
+
+        var pluginMock = new Mock<IPlatformPlugin>();
+        pluginMock.Setup(p => p.SupportedPlatforms).Returns(new[] { "metatrader4" });
+        pluginMock.Setup(p => p.PluginName).Returns("MetaTrader 4");
+
+        _pluginLoaderMock.Setup(l => l.GetPluginForPlatform("metatrader4")).Returns(pluginMock.Object);
+        _connectionRepoMock.Setup(r => r.GetByPlatformAndPathAsync("metatrader4", @"C:\MT4\Data\portfolio.json"))
+            .ReturnsAsync(new List<PlatformConnection> { existingConnection });
+
+        var request = new ConnectPlatformRequest
+        {
+            PlatformId = "metatrader4",
+            FilePath = @"C:\MT4\Data\portfolio.json"
+        };
+
+        // Act
+        var result = await _sut.ConnectAsync(request);
+
+        // Assert
+        result.Id.Should().Be(existingConnection.Id);
+        _connectionRepoMock.Verify(r => r.AddAsync(It.IsAny<PlatformConnection>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ConnectAsync_Should_Create_New_Connection_When_No_Match_Exists()
+    {
+        // Arrange
+        var pluginMock = new Mock<IPlatformPlugin>();
+        var adapterMock = new Mock<IPlatformAdapter>();
+
+        pluginMock.Setup(p => p.SupportedPlatforms).Returns(new[] { "metatrader4" });
+        pluginMock.Setup(p => p.CreateAdapter(It.IsAny<PlatformConfig>())).Returns(adapterMock.Object);
+        pluginMock.Setup(p => p.PluginName).Returns("MetaTrader 4");
+
+        adapterMock.Setup(a => a.ConnectAsync(It.IsAny<PlatformConfig>()))
+            .ReturnsAsync(new PlatformConnectionResult { Success = true, ConnectedAt = DateTime.UtcNow });
+
+        _pluginLoaderMock.Setup(l => l.GetPluginForPlatform("metatrader4")).Returns(pluginMock.Object);
+        _connectionRepoMock.Setup(r => r.GetByPlatformAndPathAsync("metatrader4", @"C:\MT4\Data\portfolio.json"))
+            .ReturnsAsync(new List<PlatformConnection>());
+        _connectionRepoMock.Setup(r => r.AddAsync(It.IsAny<PlatformConnection>())).Returns(Task.CompletedTask);
+
+        var request = new ConnectPlatformRequest
+        {
+            PlatformId = "metatrader4",
+            FilePath = @"C:\MT4\Data\portfolio.json"
+        };
+
+        // Act
+        var result = await _sut.ConnectAsync(request);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Status.Should().Be(PlatformConnectionStatus.Connected);
+        _connectionRepoMock.Verify(r => r.AddAsync(It.IsAny<PlatformConnection>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ConnectAsync_Should_Reconnect_Existing_Disconnected_Connection()
+    {
+        // Arrange
+        var existingConnection = CreateConnection();
+        _statusStore.Set(existingConnection.Id, ConnectionStatus.Disconnected);
+
+        var pluginMock = new Mock<IPlatformPlugin>();
+        var adapterMock = new Mock<IPlatformAdapter>();
+
+        pluginMock.Setup(p => p.SupportedPlatforms).Returns(new[] { "metatrader4" });
+        pluginMock.Setup(p => p.CreateAdapter(It.IsAny<PlatformConfig>())).Returns(adapterMock.Object);
+        pluginMock.Setup(p => p.PluginName).Returns("MetaTrader 4");
+
+        adapterMock.Setup(a => a.ConnectAsync(It.IsAny<PlatformConfig>()))
+            .ReturnsAsync(new PlatformConnectionResult { Success = true, ConnectedAt = DateTime.UtcNow });
+
+        _pluginLoaderMock.Setup(l => l.GetPluginForPlatform("metatrader4")).Returns(pluginMock.Object);
+        _connectionRepoMock.Setup(r => r.GetByPlatformAndPathAsync("metatrader4", @"C:\MT4\Data\portfolio.json"))
+            .ReturnsAsync(new List<PlatformConnection> { existingConnection });
+
+        var request = new ConnectPlatformRequest
+        {
+            PlatformId = "metatrader4",
+            FilePath = @"C:\MT4\Data\portfolio.json"
+        };
+
+        // Act
+        var result = await _sut.ConnectAsync(request);
+
+        // Assert
+        result.Id.Should().Be(existingConnection.Id);
+        result.Status.Should().Be(PlatformConnectionStatus.Connected);
+        _statusStore.Get(existingConnection.Id).State.Should().Be(PlatformConnectionStatus.Connected);
+        _connectionRepoMock.Verify(r => r.AddAsync(It.IsAny<PlatformConnection>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_Should_Detect_Stale_Connection()
+    {
+        // Arrange - create a real temp dir with portfolio file
+        var tempDir = Path.Combine(Path.GetTempPath(), $"certus_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        var portfolioFile = Path.Combine(tempDir, "portfolio_status.json");
+        File.WriteAllText(portfolioFile, "{}");
+
+        try
+        {
+            var config = new PlatformConfig
+            {
+                PlatformType = PlatformType.MetaTrader4,
+                DataFormat = DataFormat.Json,
+                FilePath = tempDir,
+                StaleThresholdSeconds = 0 // immediate staleness for testing
+            };
+            var connection = PlatformConnection.Create("metatrader4", "MetaTrader 4", config);
+            _statusStore.Set(connection.Id, ConnectionStatus.Disconnected.WithConnected());
+
+            _connectionRepoMock.Setup(r => r.GetAllAsync())
+                .ReturnsAsync(new List<PlatformConnection> { connection });
+            _tradeRepoMock.Setup(r => r.GetCountByStrategyAsync(Guid.Empty)).ReturnsAsync(0);
+            _tradeRepoMock.Setup(r => r.GetTotalPnLByStrategyAsync(Guid.Empty)).ReturnsAsync(0m);
+            _portfolioRepoMock.Setup(r => r.GetAllAsync())
+                .ReturnsAsync(new List<Domain.RiskAndPortfolio.Aggregates.Portfolio>());
+
+            // Act
+            var result = await _sut.GetDashboardAsync();
+
+            // Assert - with threshold=0, any file is stale
+            result.Connections.Should().HaveCount(1);
+            result.Connections[0].Status.Should().Be(PlatformConnectionStatus.Error);
+            result.Connections[0].ErrorMessage.Should().Contain("stale");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_Should_Detect_Missing_File()
+    {
+        // Arrange - use a non-existent file path
+        var config = new PlatformConfig
+        {
+            PlatformType = PlatformType.MetaTrader4,
+            DataFormat = DataFormat.Json,
+            FilePath = @"C:\NonExistent_FakePath_12345\portfolio_status.json"
+        };
+        var connection = PlatformConnection.Create("metatrader4", "MetaTrader 4", config);
+        _statusStore.Set(connection.Id, ConnectionStatus.Disconnected.WithConnected());
+        _fileImportServiceMock.Setup(f => f.IsWatching(connection.Id)).Returns(true);
+
+        _connectionRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(new List<PlatformConnection> { connection });
+        _tradeRepoMock.Setup(r => r.GetCountByStrategyAsync(Guid.Empty)).ReturnsAsync(0);
+        _tradeRepoMock.Setup(r => r.GetTotalPnLByStrategyAsync(Guid.Empty)).ReturnsAsync(0m);
+        _portfolioRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(new List<Domain.RiskAndPortfolio.Aggregates.Portfolio>());
+
+        // Act
+        var result = await _sut.GetDashboardAsync();
+
+        // Assert
+        result.Connections[0].Status.Should().Be(PlatformConnectionStatus.Error);
+        result.Connections[0].ErrorMessage.Should().Contain("not found");
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_Should_Not_Mark_Fresh_Connection_As_Stale()
+    {
+        // Arrange - create a temp dir with portfolio_status.json
+        var tempDir = Path.Combine(Path.GetTempPath(), $"certus_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        var portfolioFile = Path.Combine(tempDir, "portfolio_status.json");
+        File.WriteAllText(portfolioFile, "{}");
+
+        try
+        {
+            var config = new PlatformConfig
+            {
+                PlatformType = PlatformType.MetaTrader4,
+                DataFormat = DataFormat.Json,
+                FilePath = tempDir
+            };
+            var connection = PlatformConnection.Create("metatrader4", "MetaTrader 4", config);
+            _statusStore.Set(connection.Id, ConnectionStatus.Disconnected.WithConnected());
+            _fileImportServiceMock.Setup(f => f.IsWatching(connection.Id)).Returns(true);
+            _fileImportServiceMock.Setup(f => f.GetLastModifiedTime(connection.Id))
+                .Returns(DateTime.UtcNow.AddSeconds(-5)); // 5s ago, threshold is 10s
+
+            _connectionRepoMock.Setup(r => r.GetAllAsync())
+                .ReturnsAsync(new List<PlatformConnection> { connection });
+            _tradeRepoMock.Setup(r => r.GetCountByStrategyAsync(Guid.Empty)).ReturnsAsync(0);
+            _tradeRepoMock.Setup(r => r.GetTotalPnLByStrategyAsync(Guid.Empty)).ReturnsAsync(0m);
+            _portfolioRepoMock.Setup(r => r.GetAllAsync())
+                .ReturnsAsync(new List<Domain.RiskAndPortfolio.Aggregates.Portfolio>());
+
+            // Act
+            var result = await _sut.GetDashboardAsync();
+
+            // Assert
+            result.Connections[0].Status.Should().Be(PlatformConnectionStatus.Connected);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_Should_Check_Staleness_Even_When_Not_Watching()
+    {
+        // Arrange - use a real temp file
+        var tempDir = Path.Combine(Path.GetTempPath(), $"certus_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        var portfolioFile = Path.Combine(tempDir, "portfolio_status.json");
+        File.WriteAllText(portfolioFile, "{}");
+
+        try
+        {
+            var config = new PlatformConfig
+            {
+                PlatformType = PlatformType.MetaTrader4,
+                DataFormat = DataFormat.Json,
+                FilePath = tempDir
+            };
+            var connection = PlatformConnection.Create("metatrader4", "MetaTrader 4", config);
+            _statusStore.Set(connection.Id, ConnectionStatus.Disconnected.WithConnected());
+            _fileImportServiceMock.Setup(f => f.IsWatching(connection.Id)).Returns(false);
+
+            _connectionRepoMock.Setup(r => r.GetAllAsync())
+                .ReturnsAsync(new List<PlatformConnection> { connection });
+            _tradeRepoMock.Setup(r => r.GetCountByStrategyAsync(Guid.Empty)).ReturnsAsync(0);
+            _tradeRepoMock.Setup(r => r.GetTotalPnLByStrategyAsync(Guid.Empty)).ReturnsAsync(0m);
+            _portfolioRepoMock.Setup(r => r.GetAllAsync())
+                .ReturnsAsync(new List<Domain.RiskAndPortfolio.Aggregates.Portfolio>());
+
+            // Act
+            var result = await _sut.GetDashboardAsync();
+
+            // Assert - file exists and is fresh, so should stay Connected
+            result.Connections[0].Status.Should().Be(PlatformConnectionStatus.Connected);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_Should_Recover_When_File_Returns()
+    {
+        // Arrange - create a temp dir with portfolio file
+        var tempDir = Path.Combine(Path.GetTempPath(), $"certus_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        var portfolioFile = Path.Combine(tempDir, "portfolio_status.json");
+        File.WriteAllText(portfolioFile, "{}");
+
+        try
+        {
+            var config = new PlatformConfig
+            {
+                PlatformType = PlatformType.MetaTrader4,
+                DataFormat = DataFormat.Json,
+                FilePath = tempDir
+                // Default threshold 10s, file was just created so it's fresh
+            };
+            var connection = PlatformConnection.Create("metatrader4", "MetaTrader 4", config);
+            // Start in Error state (file was previously missing/stale)
+            _statusStore.Set(connection.Id, ConnectionStatus.Disconnected.WithConnected().WithError("Previously stale"));
+
+            _connectionRepoMock.Setup(r => r.GetAllAsync())
+                .ReturnsAsync(new List<PlatformConnection> { connection });
+            _tradeRepoMock.Setup(r => r.GetCountByStrategyAsync(Guid.Empty)).ReturnsAsync(0);
+            _tradeRepoMock.Setup(r => r.GetTotalPnLByStrategyAsync(Guid.Empty)).ReturnsAsync(0m);
+            _portfolioRepoMock.Setup(r => r.GetAllAsync())
+                .ReturnsAsync(new List<Domain.RiskAndPortfolio.Aggregates.Portfolio>());
+
+            // Act
+            var result = await _sut.GetDashboardAsync();
+
+            // Assert - file exists and is fresh, should recover
+            result.Connections[0].Status.Should().Be(PlatformConnectionStatus.Connected);
+            result.Connections[0].ErrorMessage.Should().BeNull();
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     private static PlatformConnection CreateConnection()

@@ -14,11 +14,11 @@
 #property version   "1.01"
 #property strict
 
-#include "CertusConfig.mqh"
-#include "CertusFileWriter.mqh"
-#include "CertusDateTime.mqh"
-#include "CertusPortfolioStatus.mqh"
-#include "CertusTradeLogger.mqh"
+#include "../Include/CertusConfig.mqh"
+#include "../Include/CertusFileWriter.mqh"
+#include "../Include/CertusDateTime.mqh"
+#include "../Include/CertusPortfolioStatus.mqh"
+#include "../Include/CertusTradeLogger.mqh"
 
 //--- Timer tracking
 static datetime CertusLastUpdateTime = 0;
@@ -74,55 +74,6 @@ void OnTimer()
 void OnTick()
 {
    CertusCheckAndLogTrades();
-}
-
-//+------------------------------------------------------------------+
-//| Trade transaction handler (primary event source)                 |
-//+------------------------------------------------------------------+
-void OnTradeTransaction(const MqlTradeTransaction &trans,
-                        const MqlTradeRequest &request,
-                        const MqlTradeResult &result)
-{
-   if(!CertusLogTrades) return;
-
-   switch(trans.type)
-   {
-      case TRADE_TRANSACTION_DEAL_ADD:
-      {
-         string event = CertusBuildTradeEventJSON("close");
-         if(event != "")
-         {
-            CertusAppendFile(CertusOutputDir + "/trades.json", event + "\n");
-            if(CertusLogLevel >= 2)
-               Print("[Certus] Trade logged: deal added, ticket=", OrderTicket());
-         }
-         break;
-      }
-
-      case TRADE_TRANSACTION_ORDER_ADD:
-      {
-         string event = CertusBuildTradeEventJSON("open");
-         if(event != "")
-         {
-            CertusAppendFile(CertusOutputDir + "/trades.json", event + "\n");
-            if(CertusLogLevel >= 2)
-               Print("[Certus] Trade logged: order added, ticket=", OrderTicket());
-         }
-         break;
-      }
-
-      case TRADE_TRANSACTION_ORDER_UPDATE:
-      {
-         string event = CertusBuildTradeEventJSON("modify");
-         if(event != "")
-         {
-            CertusAppendFile(CertusOutputDir + "/trades.json", event + "\n");
-            if(CertusLogLevel >= 2)
-               Print("[Certus] Trade logged: order modified, ticket=", OrderTicket());
-         }
-         break;
-      }
-   }
 }
 
 //+------------------------------------------------------------------+

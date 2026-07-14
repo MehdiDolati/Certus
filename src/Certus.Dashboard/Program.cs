@@ -26,6 +26,13 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CertusDbContext>();
+
+    // Recreate DB schema when model changes (development only)
+    if (app.Environment.IsDevelopment())
+    {
+        await db.Database.EnsureDeletedAsync();
+    }
+
     await db.Database.EnsureCreatedAsync();
     await SeedData.SeedAsync(db);
 }

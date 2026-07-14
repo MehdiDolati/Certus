@@ -19,6 +19,7 @@ public class PlatformService : IPlatformService
     private readonly IPortfolioRepository _portfolioRepo;
     private readonly IImportedTradeRepository _tradeRepo;
     private readonly IFileImportService _fileImportService;
+    private readonly IConnectionStatusStore _statusStore;
     private readonly IDomainEventDispatcher _eventDispatcher;
 
     public PlatformService(
@@ -28,6 +29,7 @@ public class PlatformService : IPlatformService
         IPortfolioRepository portfolioRepo,
         IImportedTradeRepository tradeRepo,
         IFileImportService fileImportService,
+        IConnectionStatusStore statusStore,
         IDomainEventDispatcher eventDispatcher)
     {
         _pluginLoader = pluginLoader;
@@ -36,6 +38,7 @@ public class PlatformService : IPlatformService
         _portfolioRepo = portfolioRepo;
         _tradeRepo = tradeRepo;
         _fileImportService = fileImportService;
+        _statusStore = statusStore;
         _eventDispatcher = eventDispatcher;
     }
 
@@ -43,6 +46,27 @@ public class PlatformService : IPlatformService
     {
         var plugin = _pluginLoader.GetPluginForPlatform(request.PlatformId)
             ?? throw new InvalidOperationException($"No plugin found for platform: {request.PlatformId}");
+
+        // Check for existing connection with same platform and path
+        if (!string.IsNullOrEmpty(request.FilePath))
+        {
+            var existing = await _connectionRepo.GetByPlatformAndPathAsync(request.PlatformId, request.FilePath);
+            var match = existing.FirstOrDefault();
+            if (match != null)
+            {
+                var currentStatus = _statusStore.Get(match.Id);
+                if (currentStatus.State != PlatformConnectionStatus.Connected)
+                {
+                    var adapter = plugin.CreateAdapter(match.Config);
+                    var result = await adapter.ConnectAsync(match.Config);
+                    if (result.Success)
+                    {
+                        _statusStore.Set(match.Id, currentStatus.WithConnected());
+                    }
+                }
+                return MapToDto(match, _statusStore.Get(match.Id));
+            }
+        }
 
         var config = new PlatformConfig
         {
@@ -55,20 +79,19 @@ public class PlatformService : IPlatformService
             UseFileWatcher = request.UseFileWatcher
         };
 
-        var adapter = plugin.CreateAdapter(config);
-        var result = await adapter.ConnectAsync(config);
+        var adapterForNew = plugin.CreateAdapter(config);
+        var connectResult = await adapterForNew.ConnectAsync(config);
 
-        if (!result.Success)
-            throw new InvalidOperationException($"Failed to connect: {result.ErrorMessage}");
+        if (!connectResult.Success)
+            throw new InvalidOperationException($"Failed to connect: {connectResult.ErrorMessage}");
 
         var connection = PlatformConnection.Create(
             request.PlatformId,
             plugin.PluginName,
             config);
 
-        connection.Connect();
-
         await _connectionRepo.AddAsync(connection);
+        _statusStore.Set(connection.Id, ConnectionStatus.Disconnected.WithConnected());
 
         if (!string.IsNullOrEmpty(request.FilePath) && request.UseFileWatcher)
         {
@@ -77,7 +100,7 @@ public class PlatformService : IPlatformService
             {
                 if (args.ConnectionId == connection.Id)
                 {
-                    connection.UpdateLastDataReceived();
+                    _statusStore.Set(connection.Id, _statusStore.Get(connection.Id).WithLastDataReceived());
                     await AutoImportFromChangeAsync(connection, args);
                 }
             };
@@ -89,7 +112,7 @@ public class PlatformService : IPlatformService
             PlatformId = request.PlatformId
         });
 
-        return MapToDto(connection);
+        return MapToDto(connection, _statusStore.Get(connection.Id));
     }
 
     public async Task DisconnectAsync(Guid connectionId)
@@ -98,21 +121,23 @@ public class PlatformService : IPlatformService
             ?? throw new InvalidOperationException($"Connection not found: {connectionId}");
 
         _fileImportService.StopWatching(connectionId);
-        connection.Disconnect("User disconnected");
-
-        _connectionRepo.Update(connection);
+        _statusStore.Set(connectionId, _statusStore.Get(connectionId).WithDisconnected("User disconnected"));
     }
 
     public async Task<List<PlatformConnectionDto>> GetConnectionsAsync()
     {
         var connections = await _connectionRepo.GetAllAsync();
-        return connections.Select(MapToDto).ToList();
+        foreach (var c in connections)
+            CheckStaleness(c);
+        return connections.Select(c => MapToDto(c, _statusStore.Get(c.Id))).ToList();
     }
 
     public async Task<PlatformConnectionDto?> GetConnectionAsync(Guid connectionId)
     {
         var connection = await _connectionRepo.GetByIdAsync(connectionId);
-        return connection == null ? null : MapToDto(connection);
+        if (connection == null) return null;
+        CheckStaleness(connection);
+        return MapToDto(connection, _statusStore.Get(connectionId));
     }
 
     public async Task<PlatformStatusDto> GetStatusAsync(Guid connectionId)
@@ -120,18 +145,17 @@ public class PlatformService : IPlatformService
         var connection = await _connectionRepo.GetByIdAsync(connectionId)
             ?? throw new InvalidOperationException($"Connection not found: {connectionId}");
 
-        var portfolios = await _dataRepo.GetLatestPortfolioSnapshotAsync(connectionId, string.Empty);
-        var tradeCount = await _tradeRepo.GetCountByStrategyAsync(Guid.Empty);
+        var status = _statusStore.Get(connectionId);
 
         return new PlatformStatusDto
         {
             ConnectionId = connection.Id,
             PlatformName = connection.PlatformName,
-            Status = connection.Status,
-            IsConnected = connection.Status == PlatformConnectionStatus.Connected,
-            ConnectedAt = connection.ConnectedAt,
-            LastDataReceivedAt = connection.LastDataReceivedAt,
-            ErrorMessage = connection.ErrorMessage
+            Status = status.State,
+            IsConnected = status.State == PlatformConnectionStatus.Connected,
+            ConnectedAt = status.ConnectedAt,
+            LastDataReceivedAt = status.LastDataReceivedAt,
+            ErrorMessage = status.ErrorMessage
         };
     }
 
@@ -231,7 +255,6 @@ public class PlatformService : IPlatformService
                     continue;
                 }
 
-                // Find or create strategy mapping
                 var strategyId = await FindOrCreateStrategyMappingAsync(connectionId, strategyExternalId);
 
                 var importedTrade = new ImportedTrade
@@ -239,7 +262,7 @@ public class PlatformService : IPlatformService
                     Id = Guid.NewGuid(),
                     ExternalId = trade.ExternalId,
                     StrategyId = strategyId,
-                    PortfolioId = Guid.Empty, // Will be set when portfolio is imported
+                    PortfolioId = Guid.Empty,
                     ConnectionId = connectionId,
                     Symbol = trade.Symbol,
                     Side = trade.Side.ToString(),
@@ -289,7 +312,11 @@ public class PlatformService : IPlatformService
     public async Task<PlatformDashboardDto> GetDashboardAsync()
     {
         var connections = await _connectionRepo.GetAllAsync();
-        var connectionDtos = connections.Select(MapToDto).ToList();
+
+        foreach (var conn in connections)
+            CheckStaleness(conn);
+
+        var connectionDtos = connections.Select(c => MapToDto(c, _statusStore.Get(c.Id))).ToList();
 
         int totalTrades = 0;
         decimal totalPnL = 0;
@@ -299,10 +326,13 @@ public class PlatformService : IPlatformService
             totalPnL += await _tradeRepo.GetTotalPnLByStrategyAsync(Guid.Empty);
         }
 
+        var activeCount = connections.Count(c =>
+            _statusStore.Get(c.Id).State == PlatformConnectionStatus.Connected);
+
         return new PlatformDashboardDto
         {
             TotalConnections = connections.Count,
-            ActiveConnections = connections.Count(c => c.Status == PlatformConnectionStatus.Connected),
+            ActiveConnections = activeCount,
             TotalPortfolios = (await _portfolioRepo.GetAllAsync()).Count(p => p.IsPlatformManaged),
             TotalTrades = totalTrades,
             TotalPnL = totalPnL,
@@ -312,13 +342,11 @@ public class PlatformService : IPlatformService
 
     private async Task<Guid> FindOrCreateStrategyMappingAsync(Guid connectionId, string strategyExternalId)
     {
-        // Check if we already have a mapping for this strategy
         var existingTrades = await _tradeRepo.GetByStrategyIdAsync(Guid.Empty);
         var existing = existingTrades.FirstOrDefault(t => t.ExternalId == strategyExternalId);
         if (existing != null)
             return existing.StrategyId;
 
-        // For now, return empty guid - in production, we'd create a strategy record
         return Guid.Empty;
     }
 
@@ -425,18 +453,56 @@ public class PlatformService : IPlatformService
         }
     }
 
-    private static PlatformConnectionDto MapToDto(PlatformConnection connection)
+    private static PlatformConnectionDto MapToDto(PlatformConnection connection, ConnectionStatus status)
     {
         return new PlatformConnectionDto
         {
             Id = connection.Id,
             PlatformId = connection.PlatformId,
             PlatformName = connection.PlatformName,
-            Status = connection.Status,
-            ConnectedAt = connection.ConnectedAt,
-            LastDataReceivedAt = connection.LastDataReceivedAt,
-            ErrorMessage = connection.ErrorMessage,
-            RetryCount = connection.RetryCount
+            Status = status.State,
+            ConnectedAt = status.ConnectedAt?.ToLocalTime(),
+            LastDataReceivedAt = status.LastDataReceivedAt?.ToLocalTime(),
+            ErrorMessage = status.ErrorMessage,
+            RetryCount = status.RetryCount
         };
+    }
+
+    private void CheckStaleness(PlatformConnection connection)
+    {
+        var status = _statusStore.Get(connection.Id);
+        if (string.IsNullOrEmpty(connection.Config.FilePath))
+            return;
+
+        // Determine the actual file path
+        var filePath = File.Exists(connection.Config.FilePath)
+            ? connection.Config.FilePath
+            : Path.Combine(connection.Config.FilePath, "portfolio_status.json");
+
+        if (!File.Exists(filePath))
+        {
+            if (status.State == PlatformConnectionStatus.Connected)
+            {
+                _statusStore.Set(connection.Id, status.WithError(
+                    $"Data file not found: {filePath}. Ensure the EA is running on MetaTrader."));
+            }
+            return;
+        }
+
+        // Get last modified time from the actual file on disk
+        var lastModified = File.GetLastWriteTimeUtc(filePath);
+        var staleThreshold = TimeSpan.FromSeconds(connection.Config.StaleThresholdSeconds);
+        var isStale = DateTime.UtcNow - lastModified > staleThreshold;
+
+        if (isStale && status.State == PlatformConnectionStatus.Connected)
+        {
+            _statusStore.Set(connection.Id, status.WithError(
+                $"No data received for {connection.Config.StaleThresholdSeconds}s. File may be stale."));
+        }
+        else if (!isStale && status.State != PlatformConnectionStatus.Connected)
+        {
+            // File is back and fresh — recover to connected
+            _statusStore.Set(connection.Id, ConnectionStatus.Disconnected.WithConnected());
+        }
     }
 }

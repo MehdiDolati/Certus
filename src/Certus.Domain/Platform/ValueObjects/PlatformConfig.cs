@@ -12,6 +12,7 @@ public record PlatformConfig
     public string? ApiKey { get; init; }
     public int PollingIntervalMs { get; init; } = 5000;
     public bool UseFileWatcher { get; init; } = true;
+    public int StaleThresholdSeconds { get; init; } = 10; // TODO: set to 300 for production
 }
 
 public record FilePlatformConfig : PlatformConfig

@@ -1,20 +1,27 @@
 @page "/platform"
 @rendermode InteractiveServer
+@using Certus.Application.Platform.DTOs
 @inject IPlatformService PlatformService
+@inject ISnackbar Snackbar
 @inject NavigationManager Nav
+@implements IDisposable
 
 <PageTitle>Platform - Certus</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="pa-6">
     <div style="margin-bottom: 32px;">
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-            <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #ec4899, #8b5cf6); display: flex; align-items: center; justify-content: center;">
-                <MudIcon Icon="@Icons.Material.Filled.Hub" Size="Size.Medium" Style="color: white;" />
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #ec4899, #8b5cf6); display: flex; align-items: center; justify-content: center;">
+                    <MudIcon Icon="@Icons.Material.Filled.Hub" Size="Size.Medium" Style="color: white;" />
+                </div>
+                <div>
+                    <MudText Typo="Typo.h4" Style="color: white; font-weight: 800; letter-spacing: -0.02em;">Platform Management</MudText>
+                    <MudText Typo="Typo.body2" Style="color: #64748b;">Monitor connections, imported trades, and strategy data</MudText>
+                </div>
             </div>
-            <div>
-                <MudText Typo="Typo.h4" Style="color: white; font-weight: 800; letter-spacing: -0.02em;">Platform Management</MudText>
-                <MudText Typo="Typo.body2" Style="color: #64748b;">Monitor connections, imported trades, and strategy data</MudText>
-            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Link"
+                       OnClick="OpenConnectDialog">Connect</MudButton>
         </div>
     </div>
 
@@ -149,15 +156,43 @@
             </MudPaper>
         }
     }
+
+    <ConnectPlatformDialog @bind-Visible="_connectDialogVisible" Model="_connectModel" OnSubmit="HandleConnect" />
 </MudContainer>
 
 @code {
     private bool _loading = true;
+    private bool _disposed;
     private PlatformDashboardDto _dashboard = new();
+    private System.Threading.Timer? _refreshTimer;
+
+    private bool _connectDialogVisible;
+    private ConnectPlatformDialog.ConnectModel _connectModel = new();
 
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
+
+        _refreshTimer = new System.Threading.Timer(async _ =>
+        {
+            if (_disposed) return;
+            try
+            {
+                await InvokeAsync(async () =>
+                {
+                    if (_disposed) return;
+                    _dashboard = await PlatformService.GetDashboardAsync();
+                    StateHasChanged();
+                });
+            }
+            catch (ObjectDisposedException) { }
+        }, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _refreshTimer?.Dispose();
     }
 
     private async Task LoadData()
@@ -171,13 +206,15 @@
         StateHasChanged();
     }
 
-    private string FormatCurrency(decimal value) => value switch
+    private string FormatCurrency(decimal value)
     {
-        >= 1_000_000 => $"${value / 1_000_000:N1}M",
-        >= 1_000 => $"${value / 1_000:N1}K",
-        < 0 => $"-${Math.Abs(value):N0}",
-        _ => $"${value:N0}"
-    };
+        if (value >= 1_000_000) return $"${value / 1_000_000:N1}M";
+        if (value >= 1_000) return $"${value / 1_000:N1}K";
+        return FormatNegative(value);
+    }
+
+    private static string FormatNegative(decimal value) =>
+        Math.Abs(value) != value ? $"-${Math.Abs(value):N0}" : $"${value:N0}";
 
     private string GetStatusBg(PlatformConnectionStatus status) => status switch
     {
@@ -196,4 +233,29 @@
         PlatformConnectionStatus.Error => "#ff4466",
         _ => "#475569"
     };
+
+    private void OpenConnectDialog()
+    {
+        _connectModel = new ConnectPlatformDialog.ConnectModel();
+        _connectDialogVisible = true;
+    }
+
+    private async Task HandleConnect(ConnectPlatformDialog.ConnectModel model)
+    {
+        try
+        {
+            await PlatformService.ConnectAsync(new ConnectPlatformRequest
+            {
+                PlatformId = model.PlatformId,
+                FilePath = model.FilePath,
+                UseFileWatcher = model.UseFileWatcher
+            });
+            Snackbar.Add("Platform connected successfully", Severity.Success);
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Connection failed: {ex.Message}", Severity.Error);
+        }
+    }
 }

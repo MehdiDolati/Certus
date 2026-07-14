@@ -6,6 +6,7 @@ public class FileImportService : IFileImportService
 {
     private readonly Dictionary<string, FileSystemWatcher> _watchers = new();
     private readonly Dictionary<string, DateTime> _lastModified = new();
+    private readonly Dictionary<string, string> _watchedPaths = new();
     private readonly object _lock = new();
     private bool _disposed;
 
@@ -16,11 +17,24 @@ public class FileImportService : IFileImportService
         if (_disposed)
             throw new ObjectDisposedException(nameof(FileImportService));
 
-        var directory = Path.GetDirectoryName(filePath);
-        var fileName = Path.GetFileName(filePath);
+        string directory;
+        string filter;
 
-        if (string.IsNullOrEmpty(directory) || string.IsNullOrEmpty(fileName))
-            throw new ArgumentException($"Invalid file path: {filePath}");
+        if (Directory.Exists(filePath))
+        {
+            directory = filePath;
+            filter = "portfolio_status.json";
+        }
+        else if (File.Exists(filePath))
+        {
+            directory = Path.GetDirectoryName(filePath) ?? filePath;
+            filter = Path.GetFileName(filePath);
+        }
+        else
+        {
+            directory = Path.GetDirectoryName(filePath) ?? filePath;
+            filter = Path.GetFileName(filePath);
+        }
 
         if (!Directory.Exists(directory))
             Directory.CreateDirectory(directory);
@@ -35,7 +49,7 @@ public class FileImportService : IFileImportService
             var watcher = new FileSystemWatcher
             {
                 Path = directory,
-                Filter = fileName,
+                Filter = filter,
                 NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.CreationTime,
                 EnableRaisingEvents = true
             };
@@ -46,6 +60,7 @@ public class FileImportService : IFileImportService
 
             _watchers[connectionId.ToString()] = watcher;
             _lastModified[connectionId.ToString()] = DateTime.MinValue;
+            _watchedPaths[connectionId.ToString()] = Path.Combine(directory, filter);
         }
     }
 
@@ -65,6 +80,7 @@ public class FileImportService : IFileImportService
             }
 
             _lastModified.Remove(key);
+            _watchedPaths.Remove(key);
         }
     }
 
@@ -73,6 +89,24 @@ public class FileImportService : IFileImportService
         lock (_lock)
         {
             return _watchers.ContainsKey(connectionId.ToString());
+        }
+    }
+
+    public DateTime? GetLastModifiedTime(Guid connectionId)
+    {
+        lock (_lock)
+        {
+            var key = connectionId.ToString();
+
+            // If we've detected a change via the watcher, use that
+            if (_lastModified.TryGetValue(key, out var lastMod) && lastMod != DateTime.MinValue)
+                return lastMod;
+
+            // Otherwise, fall back to the file's actual modification time
+            if (_watchedPaths.TryGetValue(key, out var filePath) && File.Exists(filePath))
+                return File.GetLastWriteTimeUtc(filePath);
+
+            return null;
         }
     }
 
