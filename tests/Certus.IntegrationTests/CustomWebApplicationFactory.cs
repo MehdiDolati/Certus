@@ -20,6 +20,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
 
     protected override IHost CreateHost(IHostBuilder builder)
     {
+        builder.UseEnvironment("Testing");
+
         builder.ConfigureServices(services =>
         {
             // Remove ALL EF Core database-related services
@@ -33,7 +35,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             foreach (var descriptor in toRemove)
                 services.Remove(descriptor);
 
-            // Add SQLite for testing
+            // Add SQLite for testing (EnsureCreated, not migrations)
             services.AddDbContext<CertusDbContext>(options =>
             {
                 options.UseSqlite(_connection!);

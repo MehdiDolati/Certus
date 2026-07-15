@@ -79,6 +79,9 @@ public class DependencyRuleTests
             .And().DoNotHaveNameEndingWith("Info") // Exclude internal serialization DTOs
             .And().DoNotHaveNameEndingWith("Position") // Exclude internal DTOs
             .And().DoNotHaveNameEndingWith("Stats") // Exclude internal DTOs
+            .And().DoNotHaveNameEndingWith("Factory") // Exclude design-time factories
+            .And().DoNotHaveNameEndingWith("Snapshot") // Exclude EF Core migration snapshots
+            .And().DoNotHaveName("InitialCreate") // Exclude EF Core migrations
             .Should()
             .HaveDependencyOn("Certus.Domain")
            .GetResult();
