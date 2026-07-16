@@ -16,6 +16,7 @@ builder.Services.AddScoped<IPortfolioService, Certus.Application.Portfolios.Port
 builder.Services.AddScoped<IStrategyService, Certus.Application.Strategies.StrategyService>();
 builder.Services.AddScoped<ITradeService, Certus.Application.Trading.TradeService>();
 builder.Services.AddScoped<IPlatformService, Certus.Application.Platform.PlatformService>();
+builder.Services.AddScoped<IPortfolioDeploymentService, Certus.Application.Platform.PortfolioDeploymentService>();
 
 builder.Services.AddMudServices();
 builder.Services.AddRazorComponents()

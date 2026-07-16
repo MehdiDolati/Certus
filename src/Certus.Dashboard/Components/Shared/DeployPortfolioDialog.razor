@@ -1,0 +1,389 @@
+@inject IPortfolioDeploymentService DeploymentService
+@inject ISnackbar Snackbar
+
+<MudDialog @bind-Visible="Visible" Options="new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true }">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color: white;">Deploy Portfolio</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_step == 1)
+        {
+            <MudText Typo="Typo.h6" Style="color: white; margin-bottom: 16px;">Step 1: Select Portfolio Folder</MudText>
+
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_folderPath" Label="Portfolio Folder Path" Variant="Variant.Outlined" Required="true"
+                                  Error="@(!string.IsNullOrEmpty(_folderError))" ErrorText="@_folderError"
+                                  Placeholder="C:\Path\To\EA\Folder" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ValidateFolder"
+                               Disabled="@_validating">
+                        @if (_validating) { <MudProgressCircular Size="Size.Small" Indeterminate="true" /> }
+                        else { <MudIcon Icon="@Icons.Material.Filled.FolderOpen" Size="Size.Small" /> }
+                        <text style="margin-left: 8px;">Validate Folder</text>
+                    </MudButton>
+                </MudItem>
+
+                @if (_validationResult != null)
+                {
+                    <MudItem xs="12">
+                        @if (_validationResult.IsValid)
+                        {
+                            <MudAlert Severity="Severity.Success" Variant="Variant.Filled">
+                                Found @_validationResult.EACount Expert Advisor(s):
+                                @string.Join(", ", _validationResult.EANames)
+                            </MudAlert>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+                                @_validationResult.ErrorMessage
+                            </MudAlert>
+                        }
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+        else if (_step == 2)
+        {
+            <MudText Typo="Typo.h6" Style="color: white; margin-bottom: 16px;">Step 2: Select Connection</MudText>
+
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudSelect T="Guid?" @bind-Value="_selectedConnectionId" Label="MT4 Connection" Variant="Variant.Outlined" Required="true"
+                               Error="@(!string.IsNullOrEmpty(_connectionError))" ErrorText="@_connectionError">
+                        @foreach (var conn in _connections)
+                        {
+                            <MudSelectItem Value="@((Guid?)conn.Id)">@conn.PlatformName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                @if (_mt4PathResult != null && _mt4PathResult.Success)
+                {
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.body2" Style="color: #94a3b8; margin-bottom: 8px;">Auto-detected MT4 path:</MudText>
+                        <MudText Typo="Typo.body1" Style="color: white;">@_mt4PathResult.ExpertsPath</MudText>
+                    </MudItem>
+                }
+                else if (_mt4PathResult != null && !_mt4PathResult.Success)
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
+                            Auto-detection failed: @_mt4PathResult.ErrorMessage
+                        </MudAlert>
+                    </MudItem>
+                }
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_manualMT4Path" Label="Manual MT4 Path (optional override)" Variant="Variant.Outlined"
+                                  Placeholder="C:\Users\Mehdi\AppData\Roaming\MetaQuotes\Terminal\ABC123" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_portfolioName" Label="Portfolio Name (optional)" Variant="Variant.Outlined"
+                                  Placeholder="Leave empty to use folder name" />
+                </MudItem>
+            </MudGrid>
+        }
+        else if (_step == 3)
+        {
+            <MudText Typo="Typo.h6" Style="color: white; margin-bottom: 16px;">Step 3: Conflict Resolution</MudText>
+
+            @if (_conflictsResult != null && _conflictsResult.ConflictingFiles.Any())
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Style="margin-bottom: 16px;">
+                    @_conflictsResult.ConflictingFiles.Count file(s) already exist in target folder
+                </MudAlert>
+
+                <MudTable Items="_conflictsResult.ConflictingFiles" Hover="true" Style="background: #1e293b;">
+                    <HeaderContent>
+                        <MudTh Style="color: #94a3b8;">Filename</MudTh>
+                        <MudTh Style="color: #94a3b8;">Action</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd Style="color: white;">@context</MudTd>
+                        <MudTd>
+                            <MudRadioGroup T="ConflictAction" Value="@GetConflictAction(context)" ValueChanged="(v) => SetConflictAction(context, v)">
+                                <MudRadio T="ConflictAction" Value="ConflictAction.Skip" Color="Color.Warning">Skip</MudRadio>
+                                <MudRadio T="ConflictAction" Value="ConflictAction.Overwrite" Color="Color.Error">Overwrite</MudRadio>
+                            </MudRadioGroup>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+
+                <MudSelect T="string" Label="Apply to All" Variant="Variant.Outlined" Style="margin-top: 16px;"
+                           ValueChanged="ApplyToAll">
+                    <MudSelectItem Value="@("Skip All")">Skip All</MudSelectItem>
+                    <MudSelectItem Value="@("Overwrite All")">Overwrite All</MudSelectItem>
+                </MudSelect>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Filled">
+                    No conflicts detected. All @_validationResult?.EACount EA(s) will be copied.
+                </MudAlert>
+            }
+        }
+        else if (_step == 4)
+        {
+            <MudText Typo="Typo.h6" Style="color: white; margin-bottom: 16px;">Step 4: Deployment Progress</MudText>
+
+            @if (_deploying)
+            {
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" Style="display: block; margin: 24px auto;" />
+                <MudText Typo="Typo.body1" Style="color: #94a3b8; text-align: center;">@_statusMessage</MudText>
+            }
+            else if (_deployResult != null)
+            {
+                @if (_deployResult.Success)
+                {
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Style="margin-bottom: 16px;">
+                        Portfolio deployed successfully!
+                    </MudAlert>
+
+                    <MudText Typo="Typo.body1" Style="color: white; margin-bottom: 8px;">
+                        Files copied: @_deployResult.FilesCopied
+                    </MudText>
+                    <MudText Typo="Typo.body1" Style="color: white; margin-bottom: 8px;">
+                        Files skipped: @_deployResult.FilesSkipped
+                    </MudText>
+
+                    @if (_deployResult.ActivationPending)
+                    {
+                        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Style="margin-top: 16px;">
+                            <MudText Typo="Typo.body2" Style="color: white;">
+                                Auto-activation pending. To activate EAs:
+                            </MudText>
+                            <MudText Typo="Typo.body2" Style="color: white; margin-top: 8px;">
+                                1. Open MT4 terminal<br />
+                                2. Navigate to Navigator > Scripts<br />
+                                3. Run CertusManager script<br />
+                                4. EAs will be attached to configured charts
+                            </MudText>
+                        </MudAlert>
+                    }
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+                        Deployment failed: @_deployResult.ErrorMessage
+                    </MudAlert>
+                }
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_step < 4)
+        {
+            <MudButton OnClick="Cancel">Cancel</MudButton>
+            @if (_step > 1)
+            {
+                <MudButton OnClick="PreviousStep">Back</MudButton>
+            }
+            @if (_step == 1)
+            {
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="NextStep"
+                           Disabled="@(!IsStep1Valid())">Next</MudButton>
+            }
+            else if (_step == 2)
+            {
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CheckConflictsAndNext"
+                           Disabled="@(IsStep2Disabled())">
+                    @if (_checkingConflicts) { <MudProgressCircular Size="Size.Small" Indeterminate="true" /> }
+                    else { <text>Check Conflicts</text> }
+                </MudButton>
+            }
+            else if (_step == 3)
+            {
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Deploy"
+                           Disabled="@_deploying">
+                    Deploy
+                </MudButton>
+            }
+        }
+        else
+        {
+            <MudButton OnClick="Close">Close</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
+    [Parameter] public EventCallback OnDeployed { get; set; }
+
+    private int _step = 1;
+    private bool _validating;
+    private bool _checkingConflicts;
+    private bool _deploying;
+
+    private string _folderPath = string.Empty;
+    private string? _folderError;
+    private ValidateFolderResult? _validationResult;
+
+    private List<PlatformConnectionDto> _connections = [];
+    private Guid? _selectedConnectionId;
+    private string? _connectionError;
+    private DeriveMT4PathResult? _mt4PathResult;
+    private string _manualMT4Path = string.Empty;
+    private string _portfolioName = string.Empty;
+
+    private CheckConflictsResult? _conflictsResult;
+    private Dictionary<string, ConflictAction> _conflictResolutions = new();
+
+    private DeployPortfolioResult? _deployResult;
+    private string _statusMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _connections = await DeploymentService.GetAvailableConnectionsAsync();
+    }
+
+    private bool IsStep1Valid() => _validationResult?.IsValid == true;
+    private bool IsStep2Valid() => _selectedConnectionId.HasValue;
+    private bool IsStep2Disabled() => !IsStep2Valid() || _checkingConflicts;
+
+    private async Task ValidateFolder()
+    {
+        _folderError = null;
+        _validationResult = null;
+
+        if (string.IsNullOrWhiteSpace(_folderPath))
+        {
+            _folderError = "Folder path is required";
+            return;
+        }
+
+        _validating = true;
+        StateHasChanged();
+
+        _validationResult = await DeploymentService.ValidateFolderAsync(_folderPath);
+
+        if (!_validationResult.IsValid)
+            _folderError = _validationResult.ErrorMessage;
+
+        _validating = false;
+        StateHasChanged();
+    }
+
+    private async Task NextStep()
+    {
+        if (_step == 1 && IsStep1Valid())
+        {
+            _step = 2;
+
+            if (_selectedConnectionId.HasValue)
+            {
+                _mt4PathResult = await DeploymentService.DeriveMT4PathAsync(_selectedConnectionId.Value);
+            }
+        }
+        StateHasChanged();
+    }
+
+    private void PreviousStep()
+    {
+        if (_step > 1) _step--;
+        StateHasChanged();
+    }
+
+    private async Task CheckConflictsAndNext()
+    {
+        _connectionError = null;
+
+        if (!_selectedConnectionId.HasValue)
+        {
+            _connectionError = "Connection is required";
+            return;
+        }
+
+        _checkingConflicts = true;
+        StateHasChanged();
+
+        // Derive MT4 path
+        _mt4PathResult = await DeploymentService.DeriveMT4PathAsync(_selectedConnectionId.Value);
+
+        var expertsPath = !string.IsNullOrWhiteSpace(_manualMT4Path)
+            ? Path.Combine(_manualMT4Path, "MQL4", "Experts")
+            : _mt4PathResult?.ExpertsPath ?? string.Empty;
+
+        if (string.IsNullOrEmpty(expertsPath))
+        {
+            _connectionError = "Cannot determine MT4 Experts path";
+            _checkingConflicts = false;
+            StateHasChanged();
+            return;
+        }
+
+        _conflictsResult = await DeploymentService.CheckConflictsAsync(_folderPath, expertsPath);
+        _conflictResolutions.Clear();
+
+        _step = 3;
+        _checkingConflicts = false;
+        StateHasChanged();
+    }
+
+    private async Task Deploy()
+    {
+        _deploying = true;
+        _statusMessage = "Copying files to MT4...";
+        StateHasChanged();
+
+        var targetPath = !string.IsNullOrWhiteSpace(_manualMT4Path)
+            ? _manualMT4Path
+            : _mt4PathResult?.MT4DataPath ?? string.Empty;
+
+        _deployResult = await DeploymentService.DeployAsync(new DeployPortfolioRequest
+        {
+            SourceFolderPath = _folderPath,
+            ConnectionId = _selectedConnectionId!.Value,
+            PortfolioName = string.IsNullOrWhiteSpace(_portfolioName) ? null : _portfolioName,
+            ManualMT4Path = string.IsNullOrWhiteSpace(targetPath) ? null : targetPath,
+            ConflictResolutions = _conflictResolutions.Count > 0 ? _conflictResolutions : null
+        });
+
+        _deploying = false;
+        _statusMessage = _deployResult.Success ? "Deployment complete!" : $"Error: {_deployResult.ErrorMessage}";
+        StateHasChanged();
+
+        if (_deployResult.Success)
+            await OnDeployed.InvokeAsync();
+    }
+
+    private ConflictAction GetConflictAction(string fileName)
+    {
+        return _conflictResolutions.TryGetValue(fileName, out var action) ? action : ConflictAction.Overwrite;
+    }
+
+    private void SetConflictAction(string fileName, ConflictAction action)
+    {
+        _conflictResolutions[fileName] = action;
+    }
+
+    private void ApplyToAll(string choice)
+    {
+        var action = choice == "Skip All" ? ConflictAction.Skip : ConflictAction.Overwrite;
+        if (_conflictsResult?.ConflictingFiles != null)
+        {
+            foreach (var file in _conflictsResult.ConflictingFiles)
+            {
+                _conflictResolutions[file] = action;
+            }
+        }
+        StateHasChanged();
+    }
+
+    private void Close()
+    {
+        Visible = false;
+        VisibleChanged.InvokeAsync(false);
+    }
+
+    private async Task Cancel()
+    {
+        Visible = false;
+        await VisibleChanged.InvokeAsync(false);
+    }
+}
