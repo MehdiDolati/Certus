@@ -108,38 +108,177 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
             };
         }
 
-        // Derive MT4 data folder from connection file path
-        // Example: C:\Users\Mehdi\AppData\Roaming\MetaQuotes\Terminal\ABC123\Certus\portfolio_status.json
-        // Should derive: C:\Users\Mehdi\AppData\Roaming\MetaQuotes\Terminal\ABC123
+        // Detect if path uses FILE_COMMON (Common\Files\) or is per-terminal
+        var normalizedPath = filePath.Replace('/', '\\');
+        bool isCommonPath = normalizedPath.Contains(@"Common\Files\", StringComparison.OrdinalIgnoreCase);
+
+        if (isCommonPath)
+            return await DeriveFromCommonPathAsync(normalizedPath);
+        else
+            return await DeriveFromTerminalPathAsync(normalizedPath);
+    }
+
+    private static Task<DeriveMT4PathResult> DeriveFromTerminalPathAsync(string terminalPath)
+    {
         string mt4DataPath;
-        if (File.Exists(filePath))
+        if (File.Exists(terminalPath))
         {
-            // filePath is a file - go up to find the terminal hash directory
-            var certusDir = Path.GetDirectoryName(filePath);
-            mt4DataPath = Path.GetDirectoryName(certusDir) ?? filePath;
+            var certusDir = Path.GetDirectoryName(terminalPath)!;
+            mt4DataPath = Path.GetDirectoryName(certusDir) ?? terminalPath;
         }
-        else if (Directory.Exists(filePath))
+        else if (Directory.Exists(terminalPath))
         {
-            // filePath is a directory (Certus folder) - go up one level
-            mt4DataPath = Path.GetDirectoryName(filePath) ?? filePath;
+            mt4DataPath = Path.GetDirectoryName(terminalPath) ?? terminalPath;
         }
         else
         {
-            return new DeriveMT4PathResult
+            return Task.FromResult(new DeriveMT4PathResult
             {
                 Success = false,
                 ErrorMessage = "Cannot determine MT4 data path from connection file path"
-            };
+            });
         }
 
         var expertsPath = Path.Combine(mt4DataPath, "MQL4", "Experts");
 
-        return new DeriveMT4PathResult
+        return Task.FromResult(new DeriveMT4PathResult
         {
             Success = true,
+            IsCommonPath = false,
             MT4DataPath = mt4DataPath,
             ExpertsPath = expertsPath
-        };
+        });
+    }
+
+    private static Task<DeriveMT4PathResult> DeriveFromCommonPathAsync(string commonPath)
+    {
+        // commonPath is like: C:\...\MetaQuotes\Common\Files\Certus\portfolio_status.json
+        // or: C:\...\MetaQuotes\Common\Files\Certus\
+        //
+        // Step 1: Navigate up to find MetaQuotes root
+        string commonFilesDir;
+        if (File.Exists(commonPath))
+        {
+            var certusDir = Path.GetDirectoryName(commonPath)!;
+            commonFilesDir = Path.GetDirectoryName(certusDir)!; // Common\Files
+        }
+        else if (Directory.Exists(commonPath))
+        {
+            var dirName = Path.GetFileName(commonPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            if (dirName.Equals("Files", StringComparison.OrdinalIgnoreCase))
+            {
+                commonFilesDir = commonPath;
+            }
+            else
+            {
+                commonFilesDir = Path.GetDirectoryName(commonPath)!; // Common\Files
+            }
+        }
+        else
+        {
+            // Path doesn't exist on disk — try to derive from the path string itself
+            // Handles case where connection was created but EA hasn't written files yet
+            var certusDir = Path.GetDirectoryName(commonPath);
+            if (certusDir != null)
+            {
+                var dirName = Path.GetFileName(certusDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                if (dirName.Equals("Files", StringComparison.OrdinalIgnoreCase))
+                {
+                    commonFilesDir = certusDir;
+                }
+                else
+                {
+                    commonFilesDir = Path.GetDirectoryName(certusDir)!;
+                }
+            }
+            else
+            {
+                return Task.FromResult(new DeriveMT4PathResult
+                {
+                    Success = false,
+                    IsCommonPath = true,
+                    ErrorMessage = "Cannot determine Common path from connection file path"
+                });
+            }
+        }
+
+        // Common\Files -> Common -> MetaQuotes
+        var commonDir = Path.GetDirectoryName(commonFilesDir)!;
+        var metaQuotesRoot = Path.GetDirectoryName(commonDir)!;
+
+        // Build Common/Files/Certus/ path for activation JSON
+        var certusCommonPath = commonPath.EndsWith("portfolio_status.json", StringComparison.OrdinalIgnoreCase)
+            ? Path.GetDirectoryName(commonPath)!
+            : commonPath;
+
+        // Step 2: Scan MetaQuotes\Terminal\ for hash subdirs with MQL4\Experts
+        var terminalRoot = Path.Combine(metaQuotesRoot, "Terminal");
+        if (!Directory.Exists(terminalRoot))
+        {
+            return Task.FromResult(new DeriveMT4PathResult
+            {
+                Success = false,
+                IsCommonPath = true,
+                CommonFilesPath = certusCommonPath,
+                ErrorMessage = $"No Terminal directory found at {terminalRoot}"
+            });
+        }
+
+        var terminalDirs = Directory.GetDirectories(terminalRoot);
+        var candidates = new List<TerminalCandidate>();
+
+        foreach (var terminalDir in terminalDirs)
+        {
+            var dirName = Path.GetFileName(terminalDir);
+            // Skip the "Common" directory itself
+            if (dirName.Equals("Common", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var expertsPath = Path.Combine(terminalDir, "MQL4", "Experts");
+            if (Directory.Exists(expertsPath))
+            {
+                candidates.Add(new TerminalCandidate
+                {
+                    MT4DataPath = terminalDir,
+                    ExpertsPath = expertsPath,
+                    DisplayName = dirName
+                });
+            }
+        }
+
+        if (candidates.Count == 0)
+        {
+            return Task.FromResult(new DeriveMT4PathResult
+            {
+                Success = false,
+                IsCommonPath = true,
+                CommonFilesPath = certusCommonPath,
+                ErrorMessage = "No terminal found with MQL4/Experts directory"
+            });
+        }
+
+        if (candidates.Count == 1)
+        {
+            return Task.FromResult(new DeriveMT4PathResult
+            {
+                Success = true,
+                IsCommonPath = true,
+                CommonFilesPath = certusCommonPath,
+                MT4DataPath = candidates[0].MT4DataPath,
+                ExpertsPath = candidates[0].ExpertsPath,
+                TerminalCandidates = candidates
+            });
+        }
+
+        // Multiple candidates — return all for UI selection
+        return Task.FromResult(new DeriveMT4PathResult
+        {
+            Success = false,
+            IsCommonPath = true,
+            CommonFilesPath = certusCommonPath,
+            TerminalCandidates = candidates,
+            ErrorMessage = $"Multiple terminals found ({candidates.Count}). Please select one."
+        });
     }
 
     public Task<CheckConflictsResult> CheckConflictsAsync(string sourceFolder, string targetExpertsPath)
@@ -199,10 +338,14 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
             {
                 targetExpertsPath = Path.Combine(request.ManualMT4Path, "MQL4", "Experts");
             }
+            else if (!string.IsNullOrWhiteSpace(request.SelectedTerminalPath))
+            {
+                targetExpertsPath = Path.Combine(request.SelectedTerminalPath, "MQL4", "Experts");
+            }
             else
             {
                 var pathResult = await DeriveMT4PathAsync(request.ConnectionId);
-                if (!pathResult.Success)
+                if (!pathResult.Success && pathResult.TerminalCandidates.Count == 0)
                 {
                     return new DeployPortfolioResult
                     {
@@ -361,7 +504,12 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
             throw new InvalidOperationException("Cannot determine MT4 data path for activation");
 
         var mt4DataPath = pathResult.MT4DataPath;
-        var certusFilesPath = Path.Combine(mt4DataPath, "Files", "Certus");
+
+        // Use CommonFilesPath when available (FILE_COMMON), fallback to per-terminal
+        var certusFilesPath = !string.IsNullOrEmpty(pathResult.CommonFilesPath)
+            ? pathResult.CommonFilesPath
+            : Path.Combine(mt4DataPath, "Files", "Certus");
+
         var scriptsPath = Path.Combine(mt4DataPath, "MQL4", "Scripts");
 
         Directory.CreateDirectory(certusFilesPath);

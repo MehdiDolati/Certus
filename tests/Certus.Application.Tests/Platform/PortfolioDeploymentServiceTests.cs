@@ -288,6 +288,157 @@ public class PortfolioDeploymentServiceTests : IDisposable
     }
 
     // =====================================================
+    // DeriveMT4PathAsync - Common Path (FILE_COMMON) Support
+    // =====================================================
+
+    [Fact]
+    public async Task DeriveMT4Path_Should_Detect_Common_Path_From_File()
+    {
+        // Structure: MetaQuotes/Common/Files/Certus/portfolio_status.json
+        var metaQuotesRoot = Path.Combine(_testFolder, "MetaQuotes");
+        var certusDir = Path.Combine(metaQuotesRoot, "Common", "Files", "Certus");
+        Directory.CreateDirectory(certusDir);
+        File.WriteAllText(Path.Combine(certusDir, "portfolio_status.json"), "{}");
+
+        // Create one terminal with MQL4/Experts
+        var terminalHash = "ABC123DEF456";
+        var expertsPath = Path.Combine(metaQuotesRoot, "Terminal", terminalHash, "MQL4", "Experts");
+        Directory.CreateDirectory(expertsPath);
+
+        var connection = PlatformConnection.Create(
+            "MetaTrader4", "MT4",
+            new PlatformConfig
+            {
+                PlatformType = PlatformType.MetaTrader4,
+                FilePath = Path.Combine(certusDir, "portfolio_status.json")
+            });
+        _connectionRepoMock.Setup(r => r.GetByIdAsync(connection.Id)).ReturnsAsync(connection);
+
+        var result = await _sut.DeriveMT4PathAsync(connection.Id);
+
+        result.Success.Should().BeTrue();
+        result.IsCommonPath.Should().BeTrue();
+        result.CommonFilesPath.Should().Be(certusDir);
+        result.ExpertsPath.Should().Be(expertsPath);
+        result.MT4DataPath.Should().Contain(terminalHash);
+    }
+
+    [Fact]
+    public async Task DeriveMT4Path_Should_Detect_Common_Path_From_Directory()
+    {
+        // Structure: MetaQuotes/Common/Files/Certus/ (pointing to dir)
+        var metaQuotesRoot = Path.Combine(_testFolder, "MetaQuotes2");
+        var certusDir = Path.Combine(metaQuotesRoot, "Common", "Files", "Certus");
+        Directory.CreateDirectory(certusDir);
+
+        var terminalHash = "XYZ789";
+        var expertsPath = Path.Combine(metaQuotesRoot, "Terminal", terminalHash, "MQL4", "Experts");
+        Directory.CreateDirectory(expertsPath);
+
+        var connection = PlatformConnection.Create(
+            "MetaTrader4", "MT4",
+            new PlatformConfig { PlatformType = PlatformType.MetaTrader4, FilePath = certusDir });
+        _connectionRepoMock.Setup(r => r.GetByIdAsync(connection.Id)).ReturnsAsync(connection);
+
+        var result = await _sut.DeriveMT4PathAsync(connection.Id);
+
+        result.Success.Should().BeTrue();
+        result.IsCommonPath.Should().BeTrue();
+        result.ExpertsPath.Should().Be(expertsPath);
+    }
+
+    [Fact]
+    public async Task DeriveMT4Path_Should_Return_Multiple_Terminals_For_Common_Path()
+    {
+        var metaQuotesRoot = Path.Combine(_testFolder, "MetaQuotes3");
+        var certusDir = Path.Combine(metaQuotesRoot, "Common", "Files", "Certus");
+        Directory.CreateDirectory(certusDir);
+
+        // Create two terminals
+        var experts1 = Path.Combine(metaQuotesRoot, "Terminal", "Hash1", "MQL4", "Experts");
+        var experts2 = Path.Combine(metaQuotesRoot, "Terminal", "Hash2", "MQL4", "Experts");
+        Directory.CreateDirectory(experts1);
+        Directory.CreateDirectory(experts2);
+
+        var connection = PlatformConnection.Create(
+            "MetaTrader4", "MT4",
+            new PlatformConfig { PlatformType = PlatformType.MetaTrader4, FilePath = certusDir });
+        _connectionRepoMock.Setup(r => r.GetByIdAsync(connection.Id)).ReturnsAsync(connection);
+
+        var result = await _sut.DeriveMT4PathAsync(connection.Id);
+
+        result.Success.Should().BeFalse();
+        result.IsCommonPath.Should().BeTrue();
+        result.TerminalCandidates.Should().HaveCount(2);
+        result.ErrorMessage.Should().Contain("Multiple terminals");
+    }
+
+    [Fact]
+    public async Task DeriveMT4Path_Should_Fail_When_No_Terminals_With_Experts()
+    {
+        var metaQuotesRoot = Path.Combine(_testFolder, "MetaQuotes4");
+        var certusDir = Path.Combine(metaQuotesRoot, "Common", "Files", "Certus");
+        Directory.CreateDirectory(certusDir);
+
+        // Create a terminal WITHOUT MQL4/Experts
+        Directory.CreateDirectory(Path.Combine(metaQuotesRoot, "Terminal", "Hash1", "MQL4"));
+
+        var connection = PlatformConnection.Create(
+            "MetaTrader4", "MT4",
+            new PlatformConfig { PlatformType = PlatformType.MetaTrader4, FilePath = certusDir });
+        _connectionRepoMock.Setup(r => r.GetByIdAsync(connection.Id)).ReturnsAsync(connection);
+
+        var result = await _sut.DeriveMT4PathAsync(connection.Id);
+
+        result.Success.Should().BeFalse();
+        result.IsCommonPath.Should().BeTrue();
+        result.ErrorMessage.Should().Contain("No terminal found");
+    }
+
+    [Fact]
+    public async Task DeriveMT4Path_Should_Fail_When_No_Terminal_Directory()
+    {
+        var metaQuotesRoot = Path.Combine(_testFolder, "MetaQuotes5");
+        var certusDir = Path.Combine(metaQuotesRoot, "Common", "Files", "Certus");
+        Directory.CreateDirectory(certusDir);
+        // No Terminal/ dir at all
+
+        var connection = PlatformConnection.Create(
+            "MetaTrader4", "MT4",
+            new PlatformConfig { PlatformType = PlatformType.MetaTrader4, FilePath = certusDir });
+        _connectionRepoMock.Setup(r => r.GetByIdAsync(connection.Id)).ReturnsAsync(connection);
+
+        var result = await _sut.DeriveMT4PathAsync(connection.Id);
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("No Terminal directory");
+    }
+
+    [Fact]
+    public async Task DeriveMT4Path_Should_Skip_Common_Dir_In_Terminal_Scan()
+    {
+        var metaQuotesRoot = Path.Combine(_testFolder, "MetaQuotes6");
+        var certusDir = Path.Combine(metaQuotesRoot, "Common", "Files", "Certus");
+        Directory.CreateDirectory(certusDir);
+
+        // Create "Common" inside Terminal/ (should be skipped) and a real terminal
+        Directory.CreateDirectory(Path.Combine(metaQuotesRoot, "Terminal", "Common", "MQL4", "Experts"));
+        var expertsPath = Path.Combine(metaQuotesRoot, "Terminal", "RealTerminal", "MQL4", "Experts");
+        Directory.CreateDirectory(expertsPath);
+
+        var connection = PlatformConnection.Create(
+            "MetaTrader4", "MT4",
+            new PlatformConfig { PlatformType = PlatformType.MetaTrader4, FilePath = certusDir });
+        _connectionRepoMock.Setup(r => r.GetByIdAsync(connection.Id)).ReturnsAsync(connection);
+
+        var result = await _sut.DeriveMT4PathAsync(connection.Id);
+
+        result.Success.Should().BeTrue();
+        result.TerminalCandidates.Should().HaveCount(1);
+        result.TerminalCandidates[0].DisplayName.Should().Be("RealTerminal");
+    }
+
+    // =====================================================
     // CheckConflictsAsync
     // =====================================================
 
@@ -807,6 +958,73 @@ public class PortfolioDeploymentServiceTests : IDisposable
 
         result.Success.Should().BeTrue();
         _deploymentRepoMock.Verify(r => r.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task Deploy_Should_Use_SelectedTerminalPath()
+    {
+        File.WriteAllText(Path.Combine(_testFolder, "EA1.ex4"), "content");
+
+        var metaQuotesRoot = Path.Combine(_testTargetFolder, "MetaQuotesB");
+        var expertsPath = Path.Combine(metaQuotesRoot, "Terminal", "HashB", "MQL4", "Experts");
+        Directory.CreateDirectory(expertsPath);
+
+        var connection = PlatformConnection.Create(
+            "MetaTrader4", "MT4",
+            new PlatformConfig { PlatformType = PlatformType.MetaTrader4, FilePath = @"C:\invalid" });
+        _connectionRepoMock.Setup(r => r.GetByIdAsync(connection.Id)).ReturnsAsync(connection);
+
+        var request = new DeployPortfolioRequest
+        {
+            SourceFolderPath = _testFolder,
+            ConnectionId = connection.Id,
+            SelectedTerminalPath = Path.Combine(metaQuotesRoot, "Terminal", "HashB")
+        };
+
+        var result = await _sut.DeployAsync(request);
+
+        result.Success.Should().BeTrue();
+        File.Exists(Path.Combine(expertsPath, "EA1.ex4")).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ActivateEAs_Should_Write_To_CommonPath_When_Common_Detected()
+    {
+        // Setup: Common path + single terminal
+        var metaQuotesRoot = Path.Combine(_testTargetFolder, "MetaQuotesA");
+        var certusCommonDir = Path.Combine(metaQuotesRoot, "Common", "Files", "Certus");
+        var terminalHash = "TerminalHashA";
+        var expertsPath = Path.Combine(metaQuotesRoot, "Terminal", terminalHash, "MQL4", "Experts");
+        var scriptsPath = Path.Combine(metaQuotesRoot, "Terminal", terminalHash, "MQL4", "Scripts");
+        Directory.CreateDirectory(certusCommonDir);
+        Directory.CreateDirectory(scriptsPath);
+        Directory.CreateDirectory(expertsPath);
+
+        File.WriteAllText(Path.Combine(_testFolder, "EA1.ex4"), "content");
+
+        var connection = PlatformConnection.Create(
+            "MetaTrader4", "MT4",
+            new PlatformConfig
+            {
+                PlatformType = PlatformType.MetaTrader4,
+                FilePath = Path.Combine(certusCommonDir, "portfolio_status.json")
+            });
+        _connectionRepoMock.Setup(r => r.GetByIdAsync(connection.Id)).ReturnsAsync(connection);
+
+        var request = new DeployPortfolioRequest
+        {
+            SourceFolderPath = _testFolder,
+            ConnectionId = connection.Id,
+            ManualMT4Path = Path.Combine(metaQuotesRoot, "Terminal", terminalHash)
+        };
+
+        var result = await _sut.DeployAsync(request);
+
+        result.Success.Should().BeTrue();
+        // Verify activation JSON is in Common/Files/Certus/ not per-terminal Files/Certus/
+        File.Exists(Path.Combine(certusCommonDir, "certus_activation.json")).Should().BeTrue();
+        File.Exists(Path.Combine(metaQuotesRoot, "Terminal", terminalHash, "Files", "Certus", "certus_activation.json"))
+            .Should().BeFalse();
     }
 
     // =====================================================

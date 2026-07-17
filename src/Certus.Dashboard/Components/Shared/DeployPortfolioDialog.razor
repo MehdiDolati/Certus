@@ -67,6 +67,22 @@
                         <MudText Typo="Typo.body1" Style="color: white;">@_mt4PathResult.ExpertsPath</MudText>
                     </MudItem>
                 }
+                else if (_mt4PathResult != null && !_mt4PathResult.Success && _mt4PathResult.TerminalCandidates.Count > 0)
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Style="margin-bottom: 8px;">
+                            @_mt4PathResult.ErrorMessage
+                        </MudAlert>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudSelect T="string" @bind-Value="_selectedTerminalPath" Label="Select MT4 Terminal" Variant="Variant.Outlined" Required="true">
+                            @foreach (var candidate in _mt4PathResult.TerminalCandidates)
+                            {
+                                <MudSelectItem Value="@candidate.MT4DataPath">@candidate.DisplayName — @candidate.ExpertsPath</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                }
                 else if (_mt4PathResult != null && !_mt4PathResult.Success)
                 {
                     <MudItem xs="12">
@@ -229,6 +245,7 @@
     private string? _connectionError;
     private DeriveMT4PathResult? _mt4PathResult;
     private string _manualMT4Path = string.Empty;
+    private string? _selectedTerminalPath;
     private string _portfolioName = string.Empty;
 
     private CheckConflictsResult? _conflictsResult;
@@ -244,7 +261,8 @@
 
     private bool IsStep1Valid() => _validationResult?.IsValid == true;
     private bool IsStep2Valid() => _selectedConnectionId.HasValue;
-    private bool IsStep2Disabled() => !IsStep2Valid() || _checkingConflicts;
+    private bool IsStep2Disabled() => !IsStep2Valid() || _checkingConflicts
+        || (_mt4PathResult != null && !_mt4PathResult.Success && _mt4PathResult.TerminalCandidates.Count > 1 && string.IsNullOrEmpty(_selectedTerminalPath));
 
     private async Task ValidateFolder()
     {
@@ -307,7 +325,9 @@
 
         var expertsPath = !string.IsNullOrWhiteSpace(_manualMT4Path)
             ? Path.Combine(_manualMT4Path, "MQL4", "Experts")
-            : _mt4PathResult?.ExpertsPath ?? string.Empty;
+            : _selectedTerminalPath != null
+                ? Path.Combine(_selectedTerminalPath, "MQL4", "Experts")
+                : _mt4PathResult?.ExpertsPath ?? string.Empty;
 
         if (string.IsNullOrEmpty(expertsPath))
         {
@@ -333,14 +353,15 @@
 
         var targetPath = !string.IsNullOrWhiteSpace(_manualMT4Path)
             ? _manualMT4Path
-            : _mt4PathResult?.MT4DataPath ?? string.Empty;
+            : _selectedTerminalPath ?? _mt4PathResult?.MT4DataPath ?? string.Empty;
 
         _deployResult = await DeploymentService.DeployAsync(new DeployPortfolioRequest
         {
             SourceFolderPath = _folderPath,
             ConnectionId = _selectedConnectionId!.Value,
             PortfolioName = string.IsNullOrWhiteSpace(_portfolioName) ? null : _portfolioName,
-            ManualMT4Path = string.IsNullOrWhiteSpace(targetPath) ? null : targetPath,
+            ManualMT4Path = string.IsNullOrWhiteSpace(_manualMT4Path) ? null : _manualMT4Path,
+            SelectedTerminalPath = string.IsNullOrWhiteSpace(_selectedTerminalPath) ? null : _selectedTerminalPath,
             ConflictResolutions = _conflictResolutions.Count > 0 ? _conflictResolutions : null
         });
 

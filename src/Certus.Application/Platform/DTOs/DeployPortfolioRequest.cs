@@ -6,6 +6,7 @@ public record DeployPortfolioRequest
     public Guid ConnectionId { get; init; }
     public string? PortfolioName { get; init; }
     public string? ManualMT4Path { get; init; }
+    public string? SelectedTerminalPath { get; init; }
     public Dictionary<string, ConflictAction>? ConflictResolutions { get; init; }
 }
 

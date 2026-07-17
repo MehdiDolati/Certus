@@ -74,7 +74,7 @@ PlatformConnection
 3. **BR-003**: For each EA conflict (same filename in target), user is prompted to skip or overwrite
 4. **BR-004**: Deployment creates a Portfolio entity with Status = Active
 5. **BR-005**: Each .ex4 file becomes a StrategyDefinition with Status = Active
-6. **BR-006**: MT4 Experts folder path is derived from connection's file path by replacing the trailing "Files/Certus/" with "MQL4/Experts/"
+6. **BR-006**: MT4 Experts folder path is derived from connection's file path. If the path uses FILE_COMMON (contains "Common/Files/"), the system scans MetaQuotes/Terminal/ for hash subdirectories with MQL4/Experts/. For per-terminal paths, derives by navigating up to the terminal hash directory
 7. **BR-007**: If auto-detection fails, user must manually specify the MT4 data folder
 8. **BR-008**: Monitoring starts automatically after successful file copy
 9. **BR-009**: Deployment can be stopped (monitoring paused) but not deleted while active
@@ -121,6 +121,12 @@ PlatformConnection
 - [ ] AC-024: Given deployment creates a Portfolio, when the Portfolio is created, then Status = Active and IsPlatformManaged = true
 - [ ] AC-025: Given 5 .ex4 files in folder, when deployment creates Strategies, then 5 StrategyDefinition entities are created with matching names
 - [ ] AC-026: Given StrategyDefinitions created, when viewed in Portfolio Detail, then each EA appears as a strategy
+
+### FILE_COMMON Path Handling
+- [ ] AC-027: Given a connection with Common path (FILE_COMMON), when derivation runs, then system scans MetaQuotes/Terminal/ for hash subdirs with MQL4/Experts
+- [ ] AC-028: Given multiple terminals found with Common path, when derivation runs, then user is prompted to select one via dropdown
+- [ ] AC-029: Given a Common path, when activation runs, then certus_activation.json is written to Common/Files/Certus/ (matching EA's FILE_COMMON read path)
+- [ ] AC-030: Given a per-terminal path, when activation runs, then certus_activation.json is written to Files/Certus/ (unchanged behavior)
 
 ## API Contract
 
@@ -269,17 +275,24 @@ A MudDialog with the following steps:
 
 ### MT4 Path Derivation Logic
 
-Given a connection's file path like:
+The system detects whether a connection's file path uses FILE_COMMON or per-terminal paths:
+
+**Per-terminal path:**
 ```
 C:\Users\Mehdi\AppData\Roaming\MetaQuotes\Terminal\ABC123\Certus\portfolio_status.json
+→ C:\Users\Mehdi\AppData\Roaming\MetaQuotes\Terminal\ABC123\MQL4\Experts\
 ```
 
-Derive MT4 Experts path:
+**Common path (FILE_COMMON):**
 ```
-C:\Users\Mehdi\AppData\Roaming\MetaQuotes\Terminal\ABC123\MQL4\Experts\
+C:\Users\Mehdi\AppData\Roaming\MetaQuotes\Common\Files\Certus\portfolio_status.json
+→ Scans MetaQuotes\Terminal\ for hash subdirs with MQL4\Experts\
+→ If 1 found: auto-select
+→ If >1 found: prompt user to select
+→ If 0 found: error with manual override option
 ```
 
-Logic: Take the connection file path, find the terminal hash directory (the directory containing "Certus" folder), then construct "MQL4/Experts/" path.
+**Activation JSON** is always written to `Common/Files/Certus/certus_activation.json` when FILE_COMMON is detected, matching the EA's read path.
 
 ### File Copy Strategy
 
@@ -329,7 +342,9 @@ MT4 does not provide a direct API for attaching EAs to charts programmatically. 
 ### Monitoring Setup
 
 After deployment:
-1. Construct the Certus output directory path: `<MT4_Data>\Files\Certus\`
+1. Construct the Certus output directory path:
+   - For FILE_COMMON: `<MT4_Data>\Common\Files\Certus\`
+   - For per-terminal: `<MT4_Data>\Files\Certus\`
 2. Create FileSystemWatcher on that directory
 3. Filter for `portfolio_status.json` and `trades.json`
 4. Subscribe to Changed events
