@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using Certus.Application.Platform.DTOs
 @inject IPlatformService PlatformService
+@inject IPortfolioDeploymentService DeploymentService
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
 @implements IDisposable
@@ -20,8 +21,12 @@
                     <MudText Typo="Typo.body2" Style="color: #64748b;">Monitor connections, imported trades, and strategy data</MudText>
                 </div>
             </div>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Link"
-                       OnClick="OpenConnectDialog">Connect</MudButton>
+            <div>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Link"
+                           OnClick="OpenConnectDialog">Connect</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Upload"
+                           OnClick="OpenDeployDialog" Style="margin-left: 8px;">Deploy Portfolio</MudButton>
+            </div>
         </div>
     </div>
 
@@ -136,6 +141,74 @@
             </MudPaper>
         }
 
+        @if (_deployments.Any())
+        {
+            <div style="display: flex; align-items: center; gap: 10px; margin-top: 28px; margin-bottom: 16px;">
+                <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(6, 182, 212, 0.15); display: flex; align-items: center; justify-content: center;">
+                    <MudIcon Icon="@Icons.Material.Filled.Upload" Size="Size.Small" Style="color: #06b6d4;" />
+                </div>
+                <MudText Typo="Typo.h6" Style="color: white; font-weight: 700;">Deployments</MudText>
+            </div>
+
+            @foreach (var deployment in _deployments)
+            {
+                <MudPaper Class="pa-5 mb-3" Style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 16px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 52px; height: 52px; border-radius: 14px; background: @(GetDeploymentStatusBg(deployment.Status)); display: flex; align-items: center; justify-content: center;">
+                            <MudIcon Icon="@Icons.Material.Filled.Upload" Size="Size.Medium"
+                                     Style="@($"color: {GetDeploymentStatusColor(deployment.Status)};")" />
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <MudText Typo="Typo.h6" Style="color: white; font-weight: 700;">@deployment.PortfolioName</MudText>
+                                <div style="display: flex; align-items: center; gap: 6px; background: @(GetDeploymentStatusBg(deployment.Status)); padding: 3px 10px; border-radius: 6px;">
+                                    <div style="width: 6px; height: 6px; border-radius: 50%; background: @(GetDeploymentStatusColor(deployment.Status));"></div>
+                                    <MudText Typo="Typo.caption" Style="@($"color: {GetDeploymentStatusColor(deployment.Status)}; font-weight: 600; font-size: 0.7rem;")">
+                                        @deployment.Status
+                                    </MudText>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 24px; margin-top: 6px;">
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Memory" Size="Size.Small" Style="color: #475569;" />
+                                    <MudText Typo="Typo.caption" Style="color: #475569;">
+                                        @deployment.EACount EA(s)
+                                    </MudText>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Hub" Size="Size.Small" Style="color: #475569;" />
+                                    <MudText Typo="Typo.caption" Style="color: #475569;">
+                                        @deployment.ConnectionName
+                                    </MudText>
+                                </div>
+                                @if (deployment.DeployedAt.HasValue)
+                                {
+                                    <div style="display: flex; align-items: center; gap: 4px;">
+                                        <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" Style="color: #475569;" />
+                                        <MudText Typo="Typo.caption" Style="color: #475569;">
+                                            Deployed: @deployment.DeployedAt.Value.ToString("MMM dd, yyyy HH:mm")
+                                        </MudText>
+                                    </div>
+                                }
+                            </div>
+                            @if (!string.IsNullOrEmpty(deployment.ErrorMessage))
+                            {
+                                <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px; background: rgba(255, 68, 102, 0.08); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255, 68, 102, 0.15);">
+                                    <MudIcon Icon="@Icons.Material.Filled.Error" Size="Size.Small" Style="color: #ff4466;" />
+                                    <MudText Typo="Typo.caption" Style="color: #ff4466;">@deployment.ErrorMessage</MudText>
+                                </div>
+                            }
+                        </div>
+                        @if (deployment.Status == Certus.Domain.Platform.Enums.DeploymentStatus.Monitoring)
+                        {
+                            <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
+                                       OnClick="() => StopDeployment(deployment.Id)">Stop</MudButton>
+                        }
+                    </div>
+                </MudPaper>
+            }
+        }
+
         @if (_dashboard.TotalPortfolios > 0)
         {
             <div style="display: flex; align-items: center; gap: 10px; margin-top: 28px; margin-bottom: 16px;">
@@ -158,34 +231,43 @@
     }
 
     <ConnectPlatformDialog @bind-Visible="_connectDialogVisible" Model="_connectModel" OnSubmit="HandleConnect" />
+    <DeployPortfolioDialog @bind-Visible="_deployDialogVisible" OnDeployed="HandleDeployed" />
 </MudContainer>
 
 @code {
     private bool _loading = true;
     private bool _disposed;
+    private bool _refreshing;
     private PlatformDashboardDto _dashboard = new();
     private System.Threading.Timer? _refreshTimer;
 
     private bool _connectDialogVisible;
     private ConnectPlatformDialog.ConnectModel _connectModel = new();
 
+    private bool _deployDialogVisible;
+    private List<PortfolioDeploymentDto> _deployments = [];
+
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
+        await LoadDeployments();
 
         _refreshTimer = new System.Threading.Timer(async _ =>
         {
-            if (_disposed) return;
+            if (_disposed || _refreshing) return;
+            _refreshing = true;
             try
             {
                 await InvokeAsync(async () =>
                 {
                     if (_disposed) return;
                     _dashboard = await PlatformService.GetDashboardAsync();
+                    _deployments = await DeploymentService.GetDeploymentsAsync();
                     StateHasChanged();
                 });
             }
             catch (ObjectDisposedException) { }
+            finally { _refreshing = false; }
         }, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
     }
 
@@ -198,11 +280,21 @@
     private async Task LoadData()
     {
         _loading = true;
+        _refreshing = true;
         StateHasChanged();
 
-        _dashboard = await PlatformService.GetDashboardAsync();
+        try
+        {
+            _dashboard = await PlatformService.GetDashboardAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PlatformDashboard] LoadData error: {ex.Message}");
+            _dashboard = new PlatformDashboardDto();
+        }
 
         _loading = false;
+        _refreshing = false;
         StateHasChanged();
     }
 
@@ -258,4 +350,63 @@
             Snackbar.Add($"Connection failed: {ex.Message}", Severity.Error);
         }
     }
+
+    private void OpenDeployDialog()
+    {
+        _deployDialogVisible = true;
+    }
+
+    private async Task HandleDeployed()
+    {
+        await LoadDeployments();
+        await LoadData();
+        Snackbar.Add("Portfolio deployed successfully", Severity.Success);
+    }
+
+    private async Task LoadDeployments()
+    {
+        try
+        {
+            _deployments = await DeploymentService.GetDeploymentsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PlatformDashboard] LoadDeployments error: {ex.Message}");
+            _deployments = [];
+        }
+    }
+
+    private async Task StopDeployment(Guid deploymentId)
+    {
+        try
+        {
+            await DeploymentService.StopMonitoringAsync(deploymentId);
+            await LoadDeployments();
+            Snackbar.Add("Deployment stopped", Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to stop deployment: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private string GetDeploymentStatusBg(Certus.Domain.Platform.Enums.DeploymentStatus status) => status switch
+    {
+        Certus.Domain.Platform.Enums.DeploymentStatus.Monitoring => "rgba(0, 255, 136, 0.12)",
+        Certus.Domain.Platform.Enums.DeploymentStatus.Deployed => "rgba(6, 182, 212, 0.12)",
+        Certus.Domain.Platform.Enums.DeploymentStatus.Copying => "rgba(245, 158, 11, 0.12)",
+        Certus.Domain.Platform.Enums.DeploymentStatus.Error => "rgba(255, 68, 102, 0.12)",
+        Certus.Domain.Platform.Enums.DeploymentStatus.Stopped => "rgba(71, 85, 105, 0.12)",
+        _ => "rgba(71, 85, 105, 0.12)"
+    };
+
+    private string GetDeploymentStatusColor(Certus.Domain.Platform.Enums.DeploymentStatus status) => status switch
+    {
+        Certus.Domain.Platform.Enums.DeploymentStatus.Monitoring => "#00ff88",
+        Certus.Domain.Platform.Enums.DeploymentStatus.Deployed => "#06b6d4",
+        Certus.Domain.Platform.Enums.DeploymentStatus.Copying => "#f59e0b",
+        Certus.Domain.Platform.Enums.DeploymentStatus.Error => "#ff4466",
+        Certus.Domain.Platform.Enums.DeploymentStatus.Stopped => "#475569",
+        _ => "#475569"
+    };
 }
