@@ -219,28 +219,35 @@
         _loading = _kpis.PortfolioCount == 0;
         StateHasChanged();
 
-        var period = Certus.Domain.SharedKernel.DateRange.All;
-
-        var portfolios = await PortfolioService.GetAllPortfoliosAsync(new PortfolioFilter(Period: period));
-        _platformDashboard = await PlatformService.GetDashboardAsync();
-
-        var totalAum = portfolios.Sum(p => p.Aum);
-        var totalPnl = portfolios.Sum(p => p.ActualReturn * p.Aum);
-        var avgSharpe = portfolios.Count > 0 ? portfolios.Average(p => p.Sharpe) : 0m;
-        var winRate = portfolios.Count > 0 ? portfolios.Average(p => p.WinRate) : 0m;
-        var executedTradeCount = portfolios.Sum(p => p.TradeCount);
-        var activeCount = portfolios.Count(p => p.Status == PortfolioStatus.Active);
-
-        _kpis = new DashboardOverview
+        try
         {
-            PortfolioCount = portfolios.Count,
-            ActivePortfolioCount = activeCount,
-            TotalAum = totalAum,
-            TotalPnl = totalPnl,
-            ExecutedTradeCount = executedTradeCount,
-            ImportedTradeCount = _platformDashboard.TotalTrades,
-            AvgSharpe = avgSharpe
-        };
+            var period = Certus.Domain.SharedKernel.DateRange.All;
+
+            var portfolios = await PortfolioService.GetAllPortfoliosAsync(new PortfolioFilter(Period: period));
+            _platformDashboard = await PlatformService.GetDashboardAsync();
+
+            var totalAum = portfolios.Sum(p => p.Aum);
+            var totalPnl = portfolios.Sum(p => p.ActualReturn * p.Aum);
+            var avgSharpe = portfolios.Count > 0 ? portfolios.Average(p => p.Sharpe) : 0m;
+            var winRate = portfolios.Count > 0 ? portfolios.Average(p => p.WinRate) : 0m;
+            var executedTradeCount = portfolios.Sum(p => p.TradeCount);
+            var activeCount = portfolios.Count(p => p.Status == PortfolioStatus.Active);
+
+            _kpis = new DashboardOverview
+            {
+                PortfolioCount = portfolios.Count,
+                ActivePortfolioCount = activeCount,
+                TotalAum = totalAum,
+                TotalPnl = totalPnl,
+                ExecutedTradeCount = executedTradeCount,
+                ImportedTradeCount = _platformDashboard.TotalTrades,
+                AvgSharpe = avgSharpe
+            };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Home] LoadData error: {ex.Message}");
+        }
 
         _loading = false;
         StateHasChanged();

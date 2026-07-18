@@ -128,7 +128,13 @@ public class PlatformService : IPlatformService
     {
         var connections = await _connectionRepo.GetAllAsync();
         foreach (var c in connections)
-            CheckStaleness(c);
+        {
+            try { CheckStaleness(c); }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[PlatformService] CheckStaleness error for {c.Id}: {ex.Message}");
+            }
+        }
         return connections.Select(c => MapToDto(c, _statusStore.Get(c.Id))).ToList();
     }
 
@@ -136,7 +142,11 @@ public class PlatformService : IPlatformService
     {
         var connection = await _connectionRepo.GetByIdAsync(connectionId);
         if (connection == null) return null;
-        CheckStaleness(connection);
+        try { CheckStaleness(connection); }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PlatformService] CheckStaleness error for {connectionId}: {ex.Message}");
+        }
         return MapToDto(connection, _statusStore.Get(connectionId));
     }
 
@@ -314,17 +324,21 @@ public class PlatformService : IPlatformService
         var connections = await _connectionRepo.GetAllAsync();
 
         foreach (var conn in connections)
-            CheckStaleness(conn);
+        {
+            try
+            {
+                CheckStaleness(conn);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[PlatformService] CheckStaleness error for {conn.Id}: {ex.Message}");
+            }
+        }
 
         var connectionDtos = connections.Select(c => MapToDto(c, _statusStore.Get(c.Id))).ToList();
 
-        int totalTrades = 0;
-        decimal totalPnL = 0;
-        foreach (var conn in connections)
-        {
-            totalTrades += await _tradeRepo.GetCountByStrategyAsync(Guid.Empty);
-            totalPnL += await _tradeRepo.GetTotalPnLByStrategyAsync(Guid.Empty);
-        }
+        var totalTrades = await _tradeRepo.GetCountByStrategyAsync(Guid.Empty);
+        var totalPnL = await _tradeRepo.GetTotalPnLByStrategyAsync(Guid.Empty);
 
         var activeCount = connections.Count(c =>
             _statusStore.Get(c.Id).State == PlatformConnectionStatus.Connected);

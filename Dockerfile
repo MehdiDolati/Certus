@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0.301 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.302 AS build
 WORKDIR /src
 
 # Copy csproj files and restore as distinct layers
@@ -10,7 +10,7 @@ RUN dotnet restore src/Certus.Dashboard/Certus.Dashboard.csproj
 
 # Copy everything else and build
 COPY src/ src/
-RUN dotnet publish src/Certus.Dashboard/Certus.Dashboard.csproj -c Release -o /app/publish --no-restore
+RUN dotnet publish src/Certus.Dashboard/Certus.Dashboard.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app

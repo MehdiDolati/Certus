@@ -283,7 +283,15 @@
         _refreshing = true;
         StateHasChanged();
 
-        _dashboard = await PlatformService.GetDashboardAsync();
+        try
+        {
+            _dashboard = await PlatformService.GetDashboardAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PlatformDashboard] LoadData error: {ex.Message}");
+            _dashboard = new PlatformDashboardDto();
+        }
 
         _loading = false;
         _refreshing = false;
@@ -357,7 +365,15 @@
 
     private async Task LoadDeployments()
     {
-        _deployments = await DeploymentService.GetDeploymentsAsync();
+        try
+        {
+            _deployments = await DeploymentService.GetDeploymentsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PlatformDashboard] LoadDeployments error: {ex.Message}");
+            _deployments = [];
+        }
     }
 
     private async Task StopDeployment(Guid deploymentId)
