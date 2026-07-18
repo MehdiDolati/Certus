@@ -83,6 +83,7 @@ public class DependencyRuleTests
             .And().DoNotHaveNameEndingWith("Snapshot") // Exclude EF Core migration snapshots
             .And().DoNotHaveName("InitialCreate") // Exclude EF Core migrations
             .And().DoNotHaveName("AddPortfolioDeployment") // Exclude EF Core migrations
+            .And().DoNotHaveName("DatabaseInitializer") // Exclude database startup utility
             .Should()
             .HaveDependencyOn("Certus.Domain")
            .GetResult();

@@ -237,6 +237,7 @@
 @code {
     private bool _loading = true;
     private bool _disposed;
+    private bool _refreshing;
     private PlatformDashboardDto _dashboard = new();
     private System.Threading.Timer? _refreshTimer;
 
@@ -253,7 +254,8 @@
 
         _refreshTimer = new System.Threading.Timer(async _ =>
         {
-            if (_disposed) return;
+            if (_disposed || _refreshing) return;
+            _refreshing = true;
             try
             {
                 await InvokeAsync(async () =>
@@ -265,6 +267,7 @@
                 });
             }
             catch (ObjectDisposedException) { }
+            finally { _refreshing = false; }
         }, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
     }
 
@@ -277,11 +280,13 @@
     private async Task LoadData()
     {
         _loading = true;
+        _refreshing = true;
         StateHasChanged();
 
         _dashboard = await PlatformService.GetDashboardAsync();
 
         _loading = false;
+        _refreshing = false;
         StateHasChanged();
     }
 
