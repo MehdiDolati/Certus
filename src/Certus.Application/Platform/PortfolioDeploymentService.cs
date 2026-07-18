@@ -108,14 +108,17 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
             };
         }
 
-        // Detect if path uses FILE_COMMON (Common\Files\) or is per-terminal
+        // Detect if path uses FILE_COMMON (Common\Files\) or is per-terminal.
+        // Normalize to backslashes only for the string check — pass the original
+        // path (with native separators) to the derivation methods so filesystem
+        // operations work on both Windows and Linux (CI).
         var normalizedPath = filePath.Replace('/', '\\');
         bool isCommonPath = normalizedPath.Contains(@"Common\Files\", StringComparison.OrdinalIgnoreCase);
 
         if (isCommonPath)
-            return await DeriveFromCommonPathAsync(normalizedPath);
+            return await DeriveFromCommonPathAsync(filePath);
         else
-            return await DeriveFromTerminalPathAsync(normalizedPath);
+            return await DeriveFromTerminalPathAsync(filePath);
     }
 
     private static Task<DeriveMT4PathResult> DeriveFromTerminalPathAsync(string terminalPath)
