@@ -184,13 +184,17 @@
 
 @code {
     private bool _loading = true;
-    private bool _disposed;
+    private volatile bool _disposed;
     private DashboardOverview _kpis = new();
     private PlatformDashboardDto _platformDashboard = new();
     private System.Threading.Timer? _refreshTimer;
+    private CancellationTokenSource? _cts;
 
     protected override async Task OnInitializedAsync()
     {
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
         await LoadData();
 
         _refreshTimer = new System.Threading.Timer(async _ =>
@@ -200,17 +204,19 @@
             {
                 await InvokeAsync(async () =>
                 {
-                    if (_disposed) return;
+                    if (_disposed || token.IsCancellationRequested) return;
                     await LoadData();
                 });
             }
-            catch (ObjectDisposedException) { }
+            catch (Exception) { }
         }, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
     }
 
     public void Dispose()
     {
         _disposed = true;
+        _cts?.Cancel();
+        _cts?.Dispose();
         _refreshTimer?.Dispose();
     }
 

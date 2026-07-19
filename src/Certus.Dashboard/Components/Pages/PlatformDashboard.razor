@@ -236,10 +236,11 @@
 
 @code {
     private bool _loading = true;
-    private bool _disposed;
+    private volatile bool _disposed;
     private bool _refreshing;
     private PlatformDashboardDto _dashboard = new();
     private System.Threading.Timer? _refreshTimer;
+    private CancellationTokenSource? _cts;
 
     private bool _connectDialogVisible;
     private ConnectPlatformDialog.ConnectModel _connectModel = new();
@@ -249,6 +250,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
         await LoadData();
         await LoadDeployments();
 
@@ -260,13 +264,14 @@
             {
                 await InvokeAsync(async () =>
                 {
-                    if (_disposed) return;
+                    if (_disposed || token.IsCancellationRequested) return;
                     _dashboard = await PlatformService.GetDashboardAsync();
                     _deployments = await DeploymentService.GetDeploymentsAsync();
-                    StateHasChanged();
+                    if (!token.IsCancellationRequested)
+                        StateHasChanged();
                 });
             }
-            catch (ObjectDisposedException) { }
+            catch (Exception) { }
             finally { _refreshing = false; }
         }, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
     }
@@ -274,6 +279,8 @@
     public void Dispose()
     {
         _disposed = true;
+        _cts?.Cancel();
+        _cts?.Dispose();
         _refreshTimer?.Dispose();
     }
 

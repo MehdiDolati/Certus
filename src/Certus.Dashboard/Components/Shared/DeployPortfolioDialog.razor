@@ -253,10 +253,23 @@
 
     private DeployPortfolioResult? _deployResult;
     private string _statusMessage = string.Empty;
+    private bool _connectionsLoaded;
 
-    protected override async Task OnInitializedAsync()
+    public override async Task SetParametersAsync(ParameterView parameters)
     {
-        _connections = await DeploymentService.GetAvailableConnectionsAsync();
+        await base.SetParametersAsync(parameters);
+
+        if (Visible && !_connectionsLoaded)
+        {
+            _connectionsLoaded = true;
+            _connections = await DeploymentService.GetAvailableConnectionsAsync();
+            StateHasChanged();
+        }
+
+        if (!Visible)
+        {
+            _connectionsLoaded = false;
+        }
     }
 
     private bool IsStep1Valid() => _validationResult?.IsValid == true;
