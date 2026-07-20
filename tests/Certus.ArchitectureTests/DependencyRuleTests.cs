@@ -81,8 +81,7 @@ public class DependencyRuleTests
             .And().DoNotHaveNameEndingWith("Stats") // Exclude internal DTOs
             .And().DoNotHaveNameEndingWith("Factory") // Exclude design-time factories
             .And().DoNotHaveNameEndingWith("Snapshot") // Exclude EF Core migration snapshots
-            .And().DoNotHaveName("InitialCreate") // Exclude EF Core migrations
-            .And().DoNotHaveName("AddPortfolioDeployment") // Exclude EF Core migrations
+            .And().DoNotResideInNamespaceStartingWith("Certus.Infrastructure.Migrations") // Exclude EF Core migrations
             .And().DoNotHaveName("DatabaseInitializer") // Exclude database startup utility
             .Should()
             .HaveDependencyOn("Certus.Domain")
