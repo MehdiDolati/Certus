@@ -4,6 +4,7 @@ using Certus.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Certus.Infrastructure.Migrations
 {
     [DbContext(typeof(CertusDbContext))]
-    partial class CertusDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260720115731_BackfillStrategySlots")]
+    partial class BackfillStrategySlots
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -179,10 +182,6 @@ namespace Certus.Infrastructure.Migrations
 
                     b.Property<int>("EACount")
                         .HasColumnType("int");
-
-                    b.Property<string>("EANames")
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
 
                     b.Property<string>("ErrorMessage")
                         .HasMaxLength(2000)

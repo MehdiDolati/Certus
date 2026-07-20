@@ -24,7 +24,6 @@ public class StrategyDefinitionConfiguration : IEntityTypeConfiguration<Strategy
 
         builder.Ignore(s => s.Parameters);
         builder.Ignore(s => s.BacktestRuns);
-        builder.Ignore(s => s.Slots);
         builder.Ignore(s => s.RiskProfile);
         builder.Ignore(s => s.PredictedPerformance);
         builder.Ignore(s => s.DomainEvents);

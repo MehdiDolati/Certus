@@ -14,6 +14,7 @@ public class PortfolioDeployment : AggregateRoot
     public DateTime? DeployedAt { get; private set; }
     public DateTime? MonitoringStartedAt { get; private set; }
     public int EACount { get; private set; }
+    public string? EANames { get; private set; }
     public string? ErrorMessage { get; private set; }
 
     public bool IsMonitoring => Status == DeploymentStatus.Monitoring;
@@ -26,7 +27,8 @@ public class PortfolioDeployment : AggregateRoot
         Guid connectionId,
         string sourceFolderPath,
         string targetMT4Path,
-        int eaCount) : base(id)
+        int eaCount,
+        string? eaNames = null) : base(id)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceFolderPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetMT4Path);
@@ -36,6 +38,7 @@ public class PortfolioDeployment : AggregateRoot
         SourceFolderPath = sourceFolderPath;
         TargetMT4Path = targetMT4Path;
         EACount = eaCount;
+        EANames = eaNames;
         Status = DeploymentStatus.Pending;
         CreatedAt = DateTime.UtcNow;
     }
@@ -45,7 +48,8 @@ public class PortfolioDeployment : AggregateRoot
         Guid connectionId,
         string sourceFolderPath,
         string targetMT4Path,
-        int eaCount)
+        int eaCount,
+        string? eaNames = null)
     {
         return new PortfolioDeployment(
             Guid.NewGuid(),
@@ -53,7 +57,8 @@ public class PortfolioDeployment : AggregateRoot
             connectionId,
             sourceFolderPath,
             targetMT4Path,
-            eaCount);
+            eaCount,
+            eaNames);
     }
 
     public void StartCopying()

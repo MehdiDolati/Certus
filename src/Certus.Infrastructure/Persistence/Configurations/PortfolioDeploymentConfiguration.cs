@@ -13,6 +13,7 @@ public class PortfolioDeploymentConfiguration : IEntityTypeConfiguration<Portfol
         builder.Property(d => d.SourceFolderPath).HasMaxLength(500).IsRequired();
         builder.Property(d => d.TargetMT4Path).HasMaxLength(500).IsRequired();
         builder.Property(d => d.Status).HasConversion<string>().HasMaxLength(50);
+        builder.Property(d => d.EANames).HasMaxLength(4000);
         builder.Property(d => d.ErrorMessage).HasMaxLength(2000);
 
         builder.Ignore(d => d.IsMonitoring);

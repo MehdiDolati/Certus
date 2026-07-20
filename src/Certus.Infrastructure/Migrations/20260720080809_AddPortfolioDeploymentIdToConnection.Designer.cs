@@ -4,6 +4,7 @@ using Certus.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Certus.Infrastructure.Migrations
 {
     [DbContext(typeof(CertusDbContext))]
-    partial class CertusDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260720080809_AddPortfolioDeploymentIdToConnection")]
+    partial class AddPortfolioDeploymentIdToConnection
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -179,10 +182,6 @@ namespace Certus.Infrastructure.Migrations
 
                     b.Property<int>("EACount")
                         .HasColumnType("int");
-
-                    b.Property<string>("EANames")
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
 
                     b.Property<string>("ErrorMessage")
                         .HasMaxLength(2000)
@@ -393,38 +392,6 @@ namespace Certus.Infrastructure.Migrations
                     b.ToTable("Strategies");
                 });
 
-            modelBuilder.Entity("Certus.Domain.Strategy.Entities.StrategySlot", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("AssignedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("PortfolioId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("StrategyDefinitionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("StrategyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PortfolioId");
-
-                    b.HasIndex("StrategyDefinitionId");
-
-                    b.HasIndex("StrategyId");
-
-                    b.HasIndex("StrategyId", "PortfolioId")
-                        .IsUnique();
-
-                    b.ToTable("StrategySlots");
-                });
-
             modelBuilder.Entity("Certus.Domain.Execution.Aggregates.Trade", b =>
                 {
                     b.OwnsOne("Certus.Domain.SharedKernel.Symbol", "Symbol", b1 =>
@@ -576,39 +543,6 @@ namespace Certus.Infrastructure.Migrations
 
                     b.Navigation("Type")
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("Certus.Domain.Strategy.Entities.StrategySlot", b =>
-                {
-                    b.HasOne("Certus.Domain.Strategy.Aggregates.StrategyDefinition", null)
-                        .WithMany("Slots")
-                        .HasForeignKey("StrategyDefinitionId");
-
-                    b.OwnsOne("Certus.Domain.Strategy.ValueObjects.Weight", "Weight", b1 =>
-                        {
-                            b1.Property<Guid>("StrategySlotId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<decimal>("Value")
-                                .HasPrecision(18, 6)
-                                .HasColumnType("decimal(18,6)")
-                                .HasColumnName("WeightValue");
-
-                            b1.HasKey("StrategySlotId");
-
-                            b1.ToTable("StrategySlots");
-
-                            b1.WithOwner()
-                                .HasForeignKey("StrategySlotId");
-                        });
-
-                    b.Navigation("Weight")
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Certus.Domain.Strategy.Aggregates.StrategyDefinition", b =>
-                {
-                    b.Navigation("Slots");
                 });
 #pragma warning restore 612, 618
         }

@@ -10,6 +10,7 @@ public class PlatformConnection : AggregateRoot
     public string PlatformName { get; private set; } = string.Empty;
     public PlatformConfig Config { get; private set; } = null!;
     public DateTime CreatedAt { get; private set; }
+    public Guid? PortfolioDeploymentId { get; private set; }
 
     private PlatformConnection() { }
 
@@ -43,5 +44,15 @@ public class PlatformConnection : AggregateRoot
         });
 
         return connection;
+    }
+
+    public void LinkDeployment(Guid deploymentId)
+    {
+        PortfolioDeploymentId = deploymentId;
+    }
+
+    public void ClearDeploymentLink()
+    {
+        PortfolioDeploymentId = null;
     }
 }
