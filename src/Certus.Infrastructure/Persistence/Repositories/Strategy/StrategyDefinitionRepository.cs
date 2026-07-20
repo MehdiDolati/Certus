@@ -21,7 +21,9 @@ public class StrategyDefinitionRepository : IStrategyDefinitionRepository
 
     public async Task<IReadOnlyList<StrategyDefinition>> GetByPortfolioIdAsync(Guid portfolioId)
     {
-        return await _db.Strategies.AsNoTracking().ToListAsync();
+        return await _db.Strategies.AsNoTracking()
+            .Where(s => _db.StrategySlots.Any(slot => slot.StrategyId == s.Id && slot.PortfolioId == portfolioId))
+            .ToListAsync();
     }
 
     public async Task<IReadOnlyList<StrategyDefinition>> GetByStatusAsync(StrategyStatus status)

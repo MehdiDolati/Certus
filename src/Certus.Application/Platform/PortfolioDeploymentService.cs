@@ -11,6 +11,7 @@ using Certus.Domain.Strategy.Enums;
 using Certus.Domain.Strategy.Repositories;
 using Certus.Domain.Strategy.ValueObjects;
 using Certus.Domain.SharedKernel;
+using Microsoft.Extensions.Logging;
 
 namespace Certus.Application.Platform;
 
@@ -22,6 +23,8 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
     private readonly IStrategyDefinitionRepository _strategyRepo;
     private readonly IPlatformPluginLoader _pluginLoader;
     private readonly IDomainEventDispatcher _eventDispatcher;
+    private readonly IFileImportService _fileImportService;
+    private readonly ILogger<PortfolioDeploymentService> _logger;
 
     public PortfolioDeploymentService(
         IPortfolioDeploymentRepository deploymentRepo,
@@ -29,7 +32,9 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
         IPortfolioRepository portfolioRepo,
         IStrategyDefinitionRepository strategyRepo,
         IPlatformPluginLoader pluginLoader,
-        IDomainEventDispatcher eventDispatcher)
+        IDomainEventDispatcher eventDispatcher,
+        IFileImportService fileImportService,
+        ILogger<PortfolioDeploymentService> logger)
     {
         _deploymentRepo = deploymentRepo;
         _connectionRepo = connectionRepo;
@@ -37,12 +42,17 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
         _strategyRepo = strategyRepo;
         _pluginLoader = pluginLoader;
         _eventDispatcher = eventDispatcher;
+        _fileImportService = fileImportService;
+        _logger = logger;
     }
 
     public Task<ValidateFolderResult> ValidateFolderAsync(string folderPath)
     {
+        _logger.LogInformation("Validating folder: {FolderPath}", folderPath);
+
         if (string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath))
         {
+            _logger.LogWarning("Folder does not exist or is invalid: {FolderPath}", folderPath);
             return Task.FromResult(new ValidateFolderResult
             {
                 IsValid = false,
@@ -54,6 +64,7 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
 
         if (ex4Files.Length == 0)
         {
+            _logger.LogWarning("No .ex4 files found in root folder: {FolderPath}", folderPath);
             return Task.FromResult(new ValidateFolderResult
             {
                 IsValid = false,
@@ -65,6 +76,8 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
             .Select(f => Path.GetFileNameWithoutExtension(f))
             .OrderBy(n => n)
             .ToList();
+
+        _logger.LogInformation("Found {EACount} EA(s) in folder: {FolderPath}", ex4Files.Length, folderPath);
 
         return Task.FromResult(new ValidateFolderResult
         {
@@ -205,27 +218,37 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
             }
         }
 
-        // Common\Files -> Common -> MetaQuotes
-        var commonDir = Path.GetDirectoryName(commonFilesDir)!;
-        var metaQuotesRoot = Path.GetDirectoryName(commonDir)!;
-
         // Build Common/Files/Certus/ path for activation JSON
         var certusCommonPath = commonPath.EndsWith("portfolio_status.json", StringComparison.OrdinalIgnoreCase)
             ? Path.GetDirectoryName(commonPath)!
             : commonPath;
 
-        // Step 2: Scan MetaQuotes\Terminal\ for hash subdirs with MQL4\Experts
-        var terminalRoot = Path.Combine(metaQuotesRoot, "Terminal");
-        if (!Directory.Exists(terminalRoot))
+        // Navigate up from commonFilesDir to find the MetaQuotes root (the directory containing "Terminal")
+        string? metaQuotesRoot = null;
+        var current = commonFilesDir;
+        while (current != null)
+        {
+            if (Directory.Exists(Path.Combine(current, "Terminal")))
+            {
+                metaQuotesRoot = current;
+                break;
+            }
+            current = Path.GetDirectoryName(current);
+        }
+
+        if (metaQuotesRoot == null)
         {
             return Task.FromResult(new DeriveMT4PathResult
             {
                 Success = false,
                 IsCommonPath = true,
                 CommonFilesPath = certusCommonPath,
-                ErrorMessage = $"No Terminal directory found at {terminalRoot}"
+                ErrorMessage = $"Could not find MetaQuotes root (no 'Terminal' directory found above {commonFilesDir})"
             });
         }
+
+        // Step 2: Scan MetaQuotes\Terminal\ for hash subdirs with MQL4\Experts
+        var terminalRoot = Path.Combine(metaQuotesRoot, "Terminal");
 
         var terminalDirs = Directory.GetDirectories(terminalRoot);
         var candidates = new List<TerminalCandidate>();
@@ -312,12 +335,16 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
 
     public async Task<DeployPortfolioResult> DeployAsync(DeployPortfolioRequest request)
     {
+        _logger.LogInformation("Starting deployment from {FolderPath} to connection {ConnectionId}",
+            request.SourceFolderPath, request.ConnectionId);
+
         try
         {
             // Validate source folder
             var validation = await ValidateFolderAsync(request.SourceFolderPath);
             if (!validation.IsValid)
             {
+                _logger.LogWarning("Deployment validation failed: {Error}", validation.ErrorMessage);
                 return new DeployPortfolioResult
                 {
                     Success = false,
@@ -337,6 +364,7 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
             }
 
             string targetExpertsPath;
+            DeriveMT4PathResult? pathResult = null;
             if (!string.IsNullOrWhiteSpace(request.ManualMT4Path))
             {
                 targetExpertsPath = Path.Combine(request.ManualMT4Path, "MQL4", "Experts");
@@ -347,7 +375,7 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
             }
             else
             {
-                var pathResult = await DeriveMT4PathAsync(request.ConnectionId);
+                pathResult = await DeriveMT4PathAsync(request.ConnectionId);
                 if (!pathResult.Success && pathResult.TerminalCandidates.Count == 0)
                 {
                     return new DeployPortfolioResult
@@ -394,14 +422,17 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
             }
 
             // Create deployment entity
+            var eaNames = string.Join(",", validation.EANames);
             var deployment = PortfolioDeployment.Create(
                 portfolio.Id,
                 request.ConnectionId,
                 request.SourceFolderPath,
                 targetExpertsPath,
-                validation.EACount);
+                validation.EACount,
+                eaNames);
 
             await _deploymentRepo.AddAsync(deployment);
+            connection.LinkDeployment(deployment.Id);
             deployment.StartCopying();
 
             // Copy files
@@ -419,15 +450,18 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
 
                 if (File.Exists(targetPath) && !shouldOverwrite)
                 {
+                    _logger.LogInformation("Skipping conflicting file: {FileName}", fileName);
                     filesSkipped++;
                     continue;
                 }
 
                 Directory.CreateDirectory(targetExpertsPath);
                 await CopyFileWithRetryAsync(file, targetPath);
+                _logger.LogInformation("Copied file: {FileName} to {TargetPath}", fileName, targetPath);
                 filesCopied++;
             }
 
+            _logger.LogInformation("File copy complete: {FilesCopied} copied, {FilesSkipped} skipped", filesCopied, filesSkipped);
             deployment.MarkDeployed();
 
             // Try to auto-activate EAs
@@ -444,7 +478,32 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
             // Start monitoring
             deployment.StartMonitoring();
 
+            // Start FileSystemWatcher on Certus directory
+            string certusDir;
+            if (pathResult != null && !string.IsNullOrEmpty(pathResult.CommonFilesPath))
+            {
+                certusDir = pathResult.CommonFilesPath;
+            }
+            else if (pathResult != null && !string.IsNullOrEmpty(pathResult.MT4DataPath))
+            {
+                certusDir = Path.Combine(pathResult.MT4DataPath, "Files", "Certus");
+            }
+            else
+            {
+                // Fallback: use the target experts path's parent to construct Certus dir
+                var mt4Root = Path.GetDirectoryName(Path.GetDirectoryName(targetExpertsPath)) ?? targetExpertsPath;
+                certusDir = Path.Combine(mt4Root, "Files", "Certus");
+            }
+            _fileImportService.StartWatchingDirectory(
+                connection.Id,
+                certusDir,
+                ["portfolio_status.json", "trades.json"]);
+            _logger.LogInformation("Started monitoring Certus directory: {CertusDir}", certusDir);
+
             await _deploymentRepo.SaveChangesAsync();
+
+            _logger.LogInformation("Deployment {DeploymentId} completed successfully. Portfolio: {PortfolioId}, Files: {FilesCopied}",
+                deployment.Id, portfolio.Id, filesCopied);
 
             return new DeployPortfolioResult
             {
@@ -458,6 +517,7 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Deployment failed: {Error}", ex.Message);
             return new DeployPortfolioResult
             {
                 Success = false,
@@ -476,11 +536,22 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
 
     public async Task StopMonitoringAsync(Guid deploymentId)
     {
+        _logger.LogInformation("Stopping monitoring for deployment {DeploymentId}", deploymentId);
+
         var deployment = await _deploymentRepo.GetByIdAsync(deploymentId)
             ?? throw new InvalidOperationException($"Deployment not found: {deploymentId}");
 
+        var connection = await _connectionRepo.GetByIdAsync(deployment.ConnectionId);
+        if (connection != null)
+        {
+            _fileImportService.StopWatching(connection.Id);
+            connection.ClearDeploymentLink();
+        }
+
         deployment.Stop();
         await _deploymentRepo.SaveChangesAsync();
+
+        _logger.LogInformation("Monitoring stopped for deployment {DeploymentId}", deploymentId);
     }
 
     public async Task<List<PortfolioDeploymentDto>> GetDeploymentsAsync()
@@ -494,6 +565,12 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
         }
 
         return result;
+    }
+
+    public async Task<bool> HasExistingDeploymentAsync(Guid connectionId)
+    {
+        var deployment = await _deploymentRepo.GetByConnectionIdAsync(connectionId);
+        return deployment != null && deployment.Status != DeploymentStatus.Error && deployment.Status != DeploymentStatus.Stopped;
     }
 
     private async Task ActivateEAsAsync(
@@ -533,6 +610,15 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
         await File.WriteAllTextAsync(
             Path.Combine(certusFilesPath, "certus_activation.json"),
             config);
+
+        // Copy CertusManager.mq4 script to Scripts folder
+        var projectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+        var scriptSource = Path.Combine(projectRoot, "MetaTrader4", "Scripts", "CertusManager.mq4");
+        var scriptTarget = Path.Combine(scriptsPath, "CertusManager.mq4");
+        if (File.Exists(scriptSource))
+        {
+            File.Copy(scriptSource, scriptTarget, overwrite: true);
+        }
     }
 
     private static async Task CopyFileWithRetryAsync(string source, string destination, int maxRetries = 3)
@@ -556,6 +642,12 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
         var portfolio = await _portfolioRepo.GetByIdAsync(deployment.PortfolioId);
         var connection = await _connectionRepo.GetByIdAsync(deployment.ConnectionId);
 
+        DateTime? lastDataReceived = null;
+        if (deployment.Status == DeploymentStatus.Monitoring && connection != null)
+        {
+            lastDataReceived = _fileImportService.GetLastModifiedTime(connection.Id);
+        }
+
         return new PortfolioDeploymentDto
         {
             Id = deployment.Id,
@@ -568,6 +660,7 @@ public class PortfolioDeploymentService : IPortfolioDeploymentService
             EACount = deployment.EACount,
             DeployedAt = deployment.DeployedAt,
             MonitoringStartedAt = deployment.MonitoringStartedAt,
+            LastDataReceivedAt = lastDataReceived,
             ErrorMessage = deployment.ErrorMessage
         };
     }

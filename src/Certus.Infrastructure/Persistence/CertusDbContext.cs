@@ -1,5 +1,6 @@
 using Certus.Domain.RiskAndPortfolio.Aggregates;
 using Certus.Domain.Strategy.Aggregates;
+using Certus.Domain.Strategy.Entities;
 using Certus.Domain.Execution.Aggregates;
 using Certus.Domain.Evaluation.Entities;
 using Certus.Domain.Evaluation.Aggregates;
@@ -19,6 +20,7 @@ public class CertusDbContext : DbContext
 
     // Strategy
     public DbSet<StrategyDefinition> Strategies => Set<StrategyDefinition>();
+    public DbSet<StrategySlot> StrategySlots => Set<StrategySlot>();
 
     // Execution
     public DbSet<Trade> Trades => Set<Trade>();

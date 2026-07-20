@@ -12,4 +12,5 @@ public interface IPortfolioDeploymentService
     Task<PortfolioDeploymentDto?> GetDeploymentStatusAsync(Guid deploymentId);
     Task StopMonitoringAsync(Guid deploymentId);
     Task<List<PortfolioDeploymentDto>> GetDeploymentsAsync();
+    Task<bool> HasExistingDeploymentAsync(Guid connectionId);
 }

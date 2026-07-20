@@ -3,6 +3,7 @@ namespace Certus.Domain.Platform.Interfaces;
 public interface IFileImportService : IDisposable
 {
     void StartWatching(Guid connectionId, string filePath);
+    void StartWatchingDirectory(Guid connectionId, string directory, string[] filePatterns);
     void StopWatching(Guid connectionId);
     bool IsWatching(Guid connectionId);
     DateTime? GetLastModifiedTime(Guid connectionId);

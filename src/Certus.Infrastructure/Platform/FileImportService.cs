@@ -7,6 +7,7 @@ public class FileImportService : IFileImportService
     private readonly Dictionary<string, FileSystemWatcher> _watchers = new();
     private readonly Dictionary<string, DateTime> _lastModified = new();
     private readonly Dictionary<string, string> _watchedPaths = new();
+    private readonly Dictionary<string, string[]> _watchedPatterns = new();
     private readonly object _lock = new();
     private bool _disposed;
 
@@ -64,6 +65,43 @@ public class FileImportService : IFileImportService
         }
     }
 
+    public void StartWatchingDirectory(Guid connectionId, string directory, string[] filePatterns)
+    {
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(FileImportService));
+
+        if (!Directory.Exists(directory))
+            Directory.CreateDirectory(directory);
+
+        lock (_lock)
+        {
+            if (_watchers.ContainsKey(connectionId.ToString()))
+            {
+                StopWatching(connectionId);
+            }
+
+            var watcher = new FileSystemWatcher
+            {
+                Path = directory,
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.CreationTime,
+                EnableRaisingEvents = true
+            };
+
+            // Watch all files in directory, we'll filter in the handler
+            watcher.Filter = "*.*";
+            watcher.IncludeSubdirectories = false;
+
+            watcher.Changed += OnDirectoryFileChanged;
+            watcher.Created += OnDirectoryFileCreated;
+            watcher.Error += OnWatcherError;
+
+            _watchers[connectionId.ToString()] = watcher;
+            _lastModified[connectionId.ToString()] = DateTime.MinValue;
+            _watchedPaths[connectionId.ToString()] = directory;
+            _watchedPatterns[connectionId.ToString()] = filePatterns.Select(p => p.ToLowerInvariant()).ToArray();
+        }
+    }
+
     public void StopWatching(Guid connectionId)
     {
         lock (_lock)
@@ -74,6 +112,8 @@ public class FileImportService : IFileImportService
                 watcher.EnableRaisingEvents = false;
                 watcher.Changed -= OnFileChanged;
                 watcher.Created -= OnFileCreated;
+                watcher.Changed -= OnDirectoryFileChanged;
+                watcher.Created -= OnDirectoryFileCreated;
                 watcher.Error -= OnWatcherError;
                 watcher.Dispose();
                 _watchers.Remove(key);
@@ -81,6 +121,7 @@ public class FileImportService : IFileImportService
 
             _lastModified.Remove(key);
             _watchedPaths.Remove(key);
+            _watchedPatterns.Remove(key);
         }
     }
 
@@ -170,6 +211,54 @@ public class FileImportService : IFileImportService
         await RaiseFileChangedAsync(connectionId, e.FullPath);
     }
 
+    private async void OnDirectoryFileChanged(object sender, FileSystemEventArgs e)
+    {
+        await Task.Delay(100);
+
+        var connectionId = GetConnectionIdForPath(e.FullPath);
+        if (connectionId == null) return;
+
+        // Check if this file matches any of the watched patterns
+        if (e.Name != null && !IsFileWatched(connectionId, e.Name))
+            return;
+
+        // Check if file was actually modified
+        var lastMod = File.GetLastWriteTime(e.FullPath);
+        lock (_lock)
+        {
+            if (_lastModified.TryGetValue(connectionId, out var lastKnown) && lastMod <= lastKnown)
+                return;
+            _lastModified[connectionId] = lastMod;
+        }
+
+        await RaiseFileChangedAsync(connectionId, e.FullPath);
+    }
+
+    private async void OnDirectoryFileCreated(object sender, FileSystemEventArgs e)
+    {
+        await Task.Delay(100);
+
+        var connectionId = GetConnectionIdForPath(e.FullPath);
+        if (connectionId == null) return;
+
+        // Check if this file matches any of the watched patterns
+        if (e.Name != null && !IsFileWatched(connectionId, e.Name))
+            return;
+
+        await RaiseFileChangedAsync(connectionId, e.FullPath);
+    }
+
+    private bool IsFileWatched(string connectionId, string fileName)
+    {
+        lock (_lock)
+        {
+            if (!_watchedPatterns.TryGetValue(connectionId, out var patterns))
+                return true; // No patterns = watch all (backwards compatible)
+
+            return patterns.Any(p => fileName.EndsWith(p, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
     private void OnWatcherError(object sender, ErrorEventArgs e)
     {
         // Log error but don't crash
@@ -220,6 +309,7 @@ public class FileImportService : IFileImportService
             }
             _watchers.Clear();
             _lastModified.Clear();
+            _watchedPatterns.Clear();
         }
 
         _disposed = true;

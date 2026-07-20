@@ -190,6 +190,15 @@
                                         </MudText>
                                     </div>
                                 }
+                                @if (deployment.LastDataReceivedAt.HasValue)
+                                {
+                                    <div style="display: flex; align-items: center; gap: 4px;">
+                                        <MudIcon Icon="@Icons.Material.Filled.Sync" Size="Size.Small" Style="color: #475569;" />
+                                        <MudText Typo="Typo.caption" Style="color: #475569;">
+                                            Last data: @deployment.LastDataReceivedAt.Value.ToString("MMM dd, yyyy HH:mm")
+                                        </MudText>
+                                    </div>
+                                }
                             </div>
                             @if (!string.IsNullOrEmpty(deployment.ErrorMessage))
                             {

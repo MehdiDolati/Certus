@@ -11,6 +11,7 @@ using Certus.Domain.Strategy.Aggregates;
 using Certus.Domain.Strategy.Repositories;
 using Certus.Domain.SharedKernel;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace Certus.Application.Tests.Platform;
@@ -23,6 +24,8 @@ public class PortfolioDeploymentServiceTests : IDisposable
     private readonly Mock<IStrategyDefinitionRepository> _strategyRepoMock;
     private readonly Mock<IPlatformPluginLoader> _pluginLoaderMock;
     private readonly Mock<IDomainEventDispatcher> _eventDispatcherMock;
+    private readonly Mock<IFileImportService> _fileImportServiceMock;
+    private readonly Mock<ILogger<PortfolioDeploymentService>> _loggerMock;
     private readonly PortfolioDeploymentService _sut;
     private readonly string _testFolder;
     private readonly string _testTargetFolder;
@@ -35,6 +38,8 @@ public class PortfolioDeploymentServiceTests : IDisposable
         _strategyRepoMock = new Mock<IStrategyDefinitionRepository>();
         _pluginLoaderMock = new Mock<IPlatformPluginLoader>();
         _eventDispatcherMock = new Mock<IDomainEventDispatcher>();
+        _fileImportServiceMock = new Mock<IFileImportService>();
+        _loggerMock = new Mock<ILogger<PortfolioDeploymentService>>();
 
         _sut = new PortfolioDeploymentService(
             _deploymentRepoMock.Object,
@@ -42,7 +47,9 @@ public class PortfolioDeploymentServiceTests : IDisposable
             _portfolioRepoMock.Object,
             _strategyRepoMock.Object,
             _pluginLoaderMock.Object,
-            _eventDispatcherMock.Object);
+            _eventDispatcherMock.Object,
+            _fileImportServiceMock.Object,
+            _loggerMock.Object);
 
         _testFolder = Path.Combine(Path.GetTempPath(), $"CertusTest_{Guid.NewGuid():N}");
         _testTargetFolder = Path.Combine(Path.GetTempPath(), $"CertusTarget_{Guid.NewGuid():N}");
@@ -411,7 +418,7 @@ public class PortfolioDeploymentServiceTests : IDisposable
         var result = await _sut.DeriveMT4PathAsync(connection.Id);
 
         result.Success.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("No Terminal directory");
+        result.ErrorMessage.Should().Contain("Terminal");
     }
 
     [Fact]

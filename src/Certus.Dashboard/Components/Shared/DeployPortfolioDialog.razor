@@ -1,5 +1,6 @@
 @inject IPortfolioDeploymentService DeploymentService
 @inject ISnackbar Snackbar
+@inject IJSRuntime JSRuntime
 
 <MudDialog @bind-Visible="Visible" Options="new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true }">
     <TitleContent>
@@ -23,7 +24,36 @@
                         else { <MudIcon Icon="@Icons.Material.Filled.FolderOpen" Size="Size.Small" /> }
                         <text style="margin-left: 8px;">Validate Folder</text>
                     </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="TriggerFolderPicker"
+                               Disabled="@_validating" Style="margin-left: 8px;">
+                        <MudIcon Icon="@Icons.Material.Filled.Folder" Size="Size.Small" />
+                        <text style="margin-left: 8px;">Browse</text>
+                    </MudButton>
+                    <input type="file" id="folderPicker" webkitdirectory directory
+                           style="display: none;" />
                 </MudItem>
+
+                @if (_selectedFiles.Any())
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Filled">
+                            Found @_selectedFiles.Count file(s) in "@_selectedFolderPath":
+                        </MudAlert>
+                        <div style="max-height: 120px; overflow-y: auto; background: #1e293b; border-radius: 8px; padding: 8px; margin-top: 8px;">
+                            @foreach (var file in _selectedFiles.Take(10))
+                            {
+                                <MudText Typo="Typo.caption" Style="color: #94a3b8;">@file</MudText>
+                            }
+                            @if (_selectedFiles.Count > 10)
+                            {
+                                <MudText Typo="Typo.caption" Style="color: #64748b;">... and @(_selectedFiles.Count - 10) more</MudText>
+                            }
+                        </div>
+                        <MudText Typo="Typo.caption" Style="color: #f59e0b; margin-top: 8px;">
+                            Browsers cannot access full file paths. Please type the full path (e.g. C:\Users\...\@_selectedFolderPath) in the text field above, then click Validate Folder.
+                        </MudText>
+                    </MudItem>
+                }
 
                 @if (_validationResult != null)
                 {
@@ -59,6 +89,15 @@
                         }
                     </MudSelect>
                 </MudItem>
+
+                @if (_existingDeploymentWarning)
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
+                            This connection already has an active deployment. Deploying again will create a new portfolio.
+                        </MudAlert>
+                    </MudItem>
+                }
 
                 @if (_mt4PathResult != null && _mt4PathResult.Success)
                 {
@@ -239,6 +278,8 @@
     private string _folderPath = string.Empty;
     private string? _folderError;
     private ValidateFolderResult? _validationResult;
+    private List<string> _selectedFiles = [];
+    private string _selectedFolderPath = string.Empty;
 
     private List<PlatformConnectionDto> _connections = [];
     private Guid? _selectedConnectionId;
@@ -247,6 +288,7 @@
     private string _manualMT4Path = string.Empty;
     private string? _selectedTerminalPath;
     private string _portfolioName = string.Empty;
+    private bool _existingDeploymentWarning;
 
     private CheckConflictsResult? _conflictsResult;
     private Dictionary<string, ConflictAction> _conflictResolutions = new();
@@ -300,6 +342,43 @@
         StateHasChanged();
     }
 
+    private async Task TriggerFolderPicker()
+    {
+        // Set up change handler that stores results in window, then open picker
+        await JSRuntime.InvokeVoidAsync("eval", @"
+            window._folderPickerResolve = null;
+            const input = document.getElementById('folderPicker');
+            input.onchange = function() {
+                const files = Array.from(input.files);
+                window._folderPickerFiles = files.map(f => f.name);
+                window._folderPickerFolder = files.length > 0 ? (files[0].webkitRelativePath || '').split('/')[0] : '';
+                if (window._folderPickerResolve) {
+                    window._folderPickerResolve();
+                    window._folderPickerResolve = null;
+                }
+            };
+            input.value = '';
+            input.click();
+        ");
+
+        // Wait for user selection then read results
+        var completed = await JSRuntime.InvokeAsync<bool>("eval", @"
+            new Promise((resolve) => {
+                window._folderPickerResolve = () => resolve(true);
+                setTimeout(() => resolve(false), 60000);
+            })
+        ");
+
+        if (!completed) return;
+
+        var fileNames = await JSRuntime.InvokeAsync<string[]>("eval", "window._folderPickerFiles || []");
+        var folderName = await JSRuntime.InvokeAsync<string>("eval", "window._folderPickerFolder || ''");
+
+        _selectedFiles = fileNames.ToList();
+        _selectedFolderPath = folderName;
+        StateHasChanged();
+    }
+
     private async Task NextStep()
     {
         if (_step == 1 && IsStep1Valid())
@@ -323,6 +402,7 @@
     private async Task CheckConflictsAndNext()
     {
         _connectionError = null;
+        _existingDeploymentWarning = false;
 
         if (!_selectedConnectionId.HasValue)
         {
@@ -332,6 +412,9 @@
 
         _checkingConflicts = true;
         StateHasChanged();
+
+        // Check for existing deployment
+        _existingDeploymentWarning = await DeploymentService.HasExistingDeploymentAsync(_selectedConnectionId.Value);
 
         // Derive MT4 path
         _mt4PathResult = await DeploymentService.DeriveMT4PathAsync(_selectedConnectionId.Value);
@@ -361,7 +444,8 @@
     private async Task Deploy()
     {
         _deploying = true;
-        _statusMessage = "Copying files to MT4...";
+        var eaCount = _validationResult?.EACount ?? 0;
+        _statusMessage = $"Copying {eaCount} file(s) to MT4...";
         StateHasChanged();
 
         var targetPath = !string.IsNullOrWhiteSpace(_manualMT4Path)
@@ -411,13 +495,44 @@
 
     private void Close()
     {
+        ResetDialogState();
         Visible = false;
         VisibleChanged.InvokeAsync(false);
     }
 
     private async Task Cancel()
     {
+        ResetDialogState();
         Visible = false;
         await VisibleChanged.InvokeAsync(false);
+    }
+
+    private void ResetDialogState()
+    {
+        _step = 1;
+        _validating = false;
+        _checkingConflicts = false;
+        _deploying = false;
+
+        _folderPath = string.Empty;
+        _folderError = null;
+        _validationResult = null;
+        _selectedFiles = [];
+        _selectedFolderPath = string.Empty;
+
+        _selectedConnectionId = null;
+        _connectionError = null;
+        _mt4PathResult = null;
+        _manualMT4Path = string.Empty;
+        _selectedTerminalPath = string.Empty;
+        _portfolioName = string.Empty;
+        _existingDeploymentWarning = false;
+
+        _conflictsResult = null;
+        _conflictResolutions.Clear();
+
+        _deployResult = null;
+        _statusMessage = string.Empty;
+        _connectionsLoaded = false;
     }
 }

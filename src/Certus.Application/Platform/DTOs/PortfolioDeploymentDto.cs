@@ -14,5 +14,6 @@ public record PortfolioDeploymentDto
     public int EACount { get; init; }
     public DateTime? DeployedAt { get; init; }
     public DateTime? MonitoringStartedAt { get; init; }
+    public DateTime? LastDataReceivedAt { get; init; }
     public string? ErrorMessage { get; init; }
 }

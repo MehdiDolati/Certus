@@ -25,6 +25,8 @@ public class PlatformConnectionConfiguration : IEntityTypeConfiguration<Platform
             c.Property(c => c.UseFileWatcher).HasColumnName("ConfigUseFileWatcher");
         });
 
+        builder.Property(p => p.PortfolioDeploymentId);
+
         builder.Ignore(p => p.DomainEvents);
     }
 }
