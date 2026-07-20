@@ -12,8 +12,9 @@ public class StrategySlot : Entity
 
     private StrategySlot() { }
 
-    public StrategySlot(Guid id, Guid portfolioId, Weight weight) : base(id)
+    public StrategySlot(Guid id, Guid strategyId, Guid portfolioId, Weight weight) : base(id)
     {
+        StrategyId = strategyId;
         PortfolioId = portfolioId;
         Weight = weight;
         AssignedAt = DateTime.UtcNow;
