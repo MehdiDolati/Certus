@@ -82,7 +82,7 @@ public class StrategyDefinition : AggregateRoot
         if (_slots.Any(s => s.PortfolioId == portfolioId))
             throw new InvalidOperationException("Strategy is already assigned to this portfolio");
 
-        var slot = new StrategySlot(Guid.NewGuid(), portfolioId, weight);
+        var slot = new StrategySlot(Guid.NewGuid(), Id, portfolioId, weight);
         _slots.Add(slot);
         UpdatedAt = DateTime.UtcNow;
     }

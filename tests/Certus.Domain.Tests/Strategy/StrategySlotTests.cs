@@ -10,12 +10,14 @@ public class StrategySlotTests
     public void Constructor_Should_Set_Properties_Correctly()
     {
         var id = Guid.NewGuid();
+        var strategyId = Guid.NewGuid();
         var portfolioId = Guid.NewGuid();
         var weight = new Weight(0.3m);
 
-        var slot = new StrategySlot(id, portfolioId, weight);
+        var slot = new StrategySlot(id, strategyId, portfolioId, weight);
 
         slot.Id.Should().Be(id);
+        slot.StrategyId.Should().Be(strategyId);
         slot.PortfolioId.Should().Be(portfolioId);
         slot.Weight.Should().Be(weight);
         slot.AssignedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
@@ -44,6 +46,6 @@ public class StrategySlotTests
 
     private static StrategySlot CreateSlot(decimal weightValue)
     {
-        return new StrategySlot(Guid.NewGuid(), Guid.NewGuid(), new Weight(weightValue));
+        return new StrategySlot(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), new Weight(weightValue));
     }
 }
