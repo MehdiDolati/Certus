@@ -24,7 +24,7 @@ public class FileImportService : IFileImportService
         if (Directory.Exists(filePath))
         {
             directory = filePath;
-            filter = "portfolio_status.json";
+            filter = "*.*";
         }
         else if (File.Exists(filePath))
         {
@@ -60,8 +60,9 @@ public class FileImportService : IFileImportService
             watcher.Error += OnWatcherError;
 
             _watchers[connectionId.ToString()] = watcher;
-            _lastModified[connectionId.ToString()] = DateTime.MinValue;
-            _watchedPaths[connectionId.ToString()] = Path.Combine(directory, filter);
+            var watchedPath = filter == "*.*" ? directory : Path.Combine(directory, filter);
+            _lastModified[watchedPath] = DateTime.MinValue;
+            _watchedPaths[connectionId.ToString()] = watchedPath;
         }
     }
 
@@ -96,7 +97,6 @@ public class FileImportService : IFileImportService
             watcher.Error += OnWatcherError;
 
             _watchers[connectionId.ToString()] = watcher;
-            _lastModified[connectionId.ToString()] = DateTime.MinValue;
             _watchedPaths[connectionId.ToString()] = directory;
             _watchedPatterns[connectionId.ToString()] = filePatterns.Select(p => p.ToLowerInvariant()).ToArray();
         }
@@ -119,7 +119,8 @@ public class FileImportService : IFileImportService
                 _watchers.Remove(key);
             }
 
-            _lastModified.Remove(key);
+            if (_watchedPaths.TryGetValue(key, out var watchedPath))
+                _lastModified.Remove(watchedPath);
             _watchedPaths.Remove(key);
             _watchedPatterns.Remove(key);
         }
@@ -139,13 +140,16 @@ public class FileImportService : IFileImportService
         {
             var key = connectionId.ToString();
 
-            // If we've detected a change via the watcher, use that
-            if (_lastModified.TryGetValue(key, out var lastMod) && lastMod != DateTime.MinValue)
-                return lastMod;
+            // Try to get last modified time from the watched path
+            if (_watchedPaths.TryGetValue(key, out var watchedPath))
+            {
+                if (_lastModified.TryGetValue(watchedPath, out var lastMod) && lastMod != DateTime.MinValue)
+                    return lastMod;
 
-            // Otherwise, fall back to the file's actual modification time
-            if (_watchedPaths.TryGetValue(key, out var filePath) && File.Exists(filePath))
-                return File.GetLastWriteTimeUtc(filePath);
+                // Fall back to the file's actual modification time
+                if (File.Exists(watchedPath))
+                    return File.GetLastWriteTimeUtc(watchedPath);
+            }
 
             return null;
         }
@@ -189,13 +193,13 @@ public class FileImportService : IFileImportService
         var connectionId = GetConnectionIdForPath(e.FullPath);
         if (connectionId == null) return;
 
-        // Check if file was actually modified
+        // Check if this specific file was actually modified (per-file, not per-connection)
         var lastMod = File.GetLastWriteTime(e.FullPath);
         lock (_lock)
         {
-            if (_lastModified.TryGetValue(connectionId, out var lastKnown) && lastMod <= lastKnown)
+            if (_lastModified.TryGetValue(e.FullPath, out var lastKnown) && lastMod <= lastKnown)
                 return;
-            _lastModified[connectionId] = lastMod;
+            _lastModified[e.FullPath] = lastMod;
         }
 
         await RaiseFileChangedAsync(connectionId, e.FullPath);
@@ -222,13 +226,13 @@ public class FileImportService : IFileImportService
         if (e.Name != null && !IsFileWatched(connectionId, e.Name))
             return;
 
-        // Check if file was actually modified
+        // Check if this specific file was actually modified (per-file, not per-connection)
         var lastMod = File.GetLastWriteTime(e.FullPath);
         lock (_lock)
         {
-            if (_lastModified.TryGetValue(connectionId, out var lastKnown) && lastMod <= lastKnown)
+            if (_lastModified.TryGetValue(e.FullPath, out var lastKnown) && lastMod <= lastKnown)
                 return;
-            _lastModified[connectionId] = lastMod;
+            _lastModified[e.FullPath] = lastMod;
         }
 
         await RaiseFileChangedAsync(connectionId, e.FullPath);
@@ -283,7 +287,7 @@ public class FileImportService : IFileImportService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error reading file {filePath}: {ex.Message}");
+            Console.WriteLine($"[FileImportService] Error reading file: {ex.Message}");
         }
     }
 
@@ -291,8 +295,23 @@ public class FileImportService : IFileImportService
     {
         lock (_lock)
         {
-            return _watchers.FirstOrDefault(kvp => 
-                filePath.Contains(Path.GetFileName(kvp.Value.Filter), StringComparison.OrdinalIgnoreCase)).Key;
+            var fileDir = Path.GetDirectoryName(filePath);
+
+            foreach (var kvp in _watchers)
+            {
+                if (!_watchedPaths.TryGetValue(kvp.Key, out var watchedPath))
+                    continue;
+
+                // Directory watcher: _watchedPaths stores the directory
+                if (fileDir != null && fileDir.Equals(watchedPath, StringComparison.OrdinalIgnoreCase))
+                    return kvp.Key;
+
+                // Single-file watcher: _watchedPaths stores the full file path
+                if (filePath.Equals(watchedPath, StringComparison.OrdinalIgnoreCase))
+                    return kvp.Key;
+            }
+
+            return null;
         }
     }
 

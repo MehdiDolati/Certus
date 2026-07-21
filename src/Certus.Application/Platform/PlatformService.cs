@@ -8,6 +8,7 @@ using Certus.Domain.Platform.ValueObjects;
 using Certus.Domain.RiskAndPortfolio.Aggregates;
 using Certus.Domain.RiskAndPortfolio.Repositories;
 using Certus.Domain.SharedKernel;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Certus.Application.Platform;
 
@@ -21,6 +22,8 @@ public class PlatformService : IPlatformService
     private readonly IFileImportService _fileImportService;
     private readonly IConnectionStatusStore _statusStore;
     private readonly IDomainEventDispatcher _eventDispatcher;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IUnitOfWork _unitOfWork;
 
     public PlatformService(
         IPlatformPluginLoader pluginLoader,
@@ -30,7 +33,9 @@ public class PlatformService : IPlatformService
         IImportedTradeRepository tradeRepo,
         IFileImportService fileImportService,
         IConnectionStatusStore statusStore,
-        IDomainEventDispatcher eventDispatcher)
+        IDomainEventDispatcher eventDispatcher,
+        IServiceScopeFactory scopeFactory,
+        IUnitOfWork unitOfWork)
     {
         _pluginLoader = pluginLoader;
         _connectionRepo = connectionRepo;
@@ -40,6 +45,8 @@ public class PlatformService : IPlatformService
         _fileImportService = fileImportService;
         _statusStore = statusStore;
         _eventDispatcher = eventDispatcher;
+        _scopeFactory = scopeFactory;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<PlatformConnectionDto> ConnectAsync(ConnectPlatformRequest request)
@@ -64,6 +71,14 @@ public class PlatformService : IPlatformService
                         _statusStore.Set(match.Id, currentStatus.WithConnected());
                     }
                 }
+
+                if (match.Config.UseFileWatcher && !string.IsNullOrEmpty(match.Config.FilePath)
+                    && !_fileImportService.IsWatching(match.Id))
+                {
+                    _fileImportService.StartWatching(match.Id, match.Config.FilePath);
+                    RegisterFileWatcher(match.Id);
+                }
+
                 return MapToDto(match, _statusStore.Get(match.Id));
             }
         }
@@ -96,14 +111,7 @@ public class PlatformService : IPlatformService
         if (!string.IsNullOrEmpty(request.FilePath) && request.UseFileWatcher)
         {
             _fileImportService.StartWatching(connection.Id, request.FilePath);
-            _fileImportService.FileChanged += async (sender, args) =>
-            {
-                if (args.ConnectionId == connection.Id)
-                {
-                    _statusStore.Set(connection.Id, _statusStore.Get(connection.Id).WithLastDataReceived());
-                    await AutoImportFromChangeAsync(connection, args);
-                }
-            };
+            RegisterFileWatcher(connection.Id);
         }
 
         await _eventDispatcher.DispatchAsync(new PlatformConnected
@@ -308,6 +316,9 @@ public class PlatformService : IPlatformService
             }
         }
 
+        if (imported > 0)
+            await _unitOfWork.SaveChangesAsync();
+
         return new ImportTradesResult
         {
             TradesImported = imported,
@@ -356,28 +367,49 @@ public class PlatformService : IPlatformService
 
     private async Task<Guid> FindOrCreateStrategyMappingAsync(Guid connectionId, string strategyExternalId)
     {
-        var existingTrades = await _tradeRepo.GetByStrategyIdAsync(Guid.Empty);
-        var existing = existingTrades.FirstOrDefault(t => t.ExternalId == strategyExternalId);
-        if (existing != null)
-            return existing.StrategyId;
-
+        // TODO: Implement strategy mapping table to link platform external IDs to internal strategy GUIDs
+        // For now, trades import successfully without strategy linkage
         return Guid.Empty;
     }
 
-    private async Task AutoImportFromChangeAsync(PlatformConnection connection, FileImportEventArgs args)
+    private void RegisterFileWatcher(Guid connectionId)
+    {
+        _fileImportService.FileChanged += async (sender, args) =>
+        {
+            if (args.ConnectionId == connectionId)
+            {
+                _statusStore.Set(connectionId, _statusStore.Get(connectionId).WithLastDataReceived());
+                try
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    var handler = scope.ServiceProvider.GetRequiredService<IPlatformService>();
+                    await handler.ImportFromChangeAsync(connectionId, args.FilePath);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[PlatformService] File change handler error: {ex.Message}");
+                }
+            }
+        };
+    }
+
+    public async Task ImportFromChangeAsync(Guid connectionId, string filePath)
     {
         try
         {
+            var connection = await _connectionRepo.GetByIdAsync(connectionId);
+            if (connection == null) return;
+
             var plugin = _pluginLoader.GetPlugin(connection.PlatformId);
             if (plugin == null) return;
 
             var parser = plugin.GetParsers().FirstOrDefault();
             if (parser == null) return;
 
-            var content = await _fileImportService.ReadFileAsync(args.FilePath);
+            var content = await _fileImportService.ReadFileAsync(filePath);
             if (string.IsNullOrEmpty(content)) return;
 
-            var fileName = Path.GetFileName(args.FilePath).ToLowerInvariant();
+            var fileName = Path.GetFileName(filePath).ToLowerInvariant();
 
             if (fileName.Contains("portfolio"))
             {
@@ -400,29 +432,47 @@ public class PlatformService : IPlatformService
 
                         portfolio.SetPlatformReference(connection.Id, platformPortfolio.ExternalId);
                         await _portfolioRepo.AddAsync(portfolio);
-
-                        await _eventDispatcher.DispatchAsync(new PortfolioImported
-                        {
-                            PortfolioId = portfolio.Id,
-                            ConnectionId = connection.Id,
-                            ExternalId = platformPortfolio.ExternalId
-                        });
+                        await _unitOfWork.SaveChangesAsync();
                     }
                     else
                     {
                         existing.UpdateCapital(new Money(platformPortfolio.Balance, Currency.USD));
                         existing.UpdateLastSynced();
                         _portfolioRepo.Update(existing);
+                        await _unitOfWork.SaveChangesAsync();
                     }
                 }
             }
             else if (fileName.Contains("trade"))
             {
                 var platformTrades = parser.ParseTrades(content);
-                foreach (var platformTrade in platformTrades)
+
+                // trades.json is append-only: same ticket appears for open then close.
+                // Keep the latest entry per ExternalId.
+                var deduped = platformTrades
+                    .GroupBy(t => t.ExternalId)
+                    .Select(g => g.OrderByDescending(t => t.CloseTime ?? t.OpenTime).First())
+                    .ToList();
+
+                int added = 0;
+                int updated = 0;
+                foreach (var platformTrade in deduped)
                 {
-                    var existing = await _tradeRepo.GetByExternalIdAsync(platformTrade.ExternalId);
-                    if (existing != null) continue;
+                    var existingTrade = await _tradeRepo.GetByExternalIdAsync(platformTrade.ExternalId);
+                    if (existingTrade != null)
+                    {
+                        if (platformTrade.CloseTime.HasValue && existingTrade.CloseTime == null)
+                        {
+                            existingTrade.ClosePrice = platformTrade.ClosePrice;
+                            existingTrade.CloseTime = platformTrade.CloseTime;
+                            existingTrade.Profit = platformTrade.Profit;
+                            existingTrade.Commission = platformTrade.Commission;
+                            existingTrade.Swap = platformTrade.Swap;
+                            _tradeRepo.Update(existingTrade);
+                            updated++;
+                        }
+                        continue;
+                    }
 
                     var strategyId = await FindOrCreateStrategyMappingAsync(connection.Id, platformTrade.StrategyExternalId);
 
@@ -450,15 +500,9 @@ public class PlatformService : IPlatformService
                     };
 
                     await _tradeRepo.AddAsync(importedTrade);
-
-                    await _eventDispatcher.DispatchAsync(new TradeImported
-                    {
-                        TradeId = importedTrade.Id,
-                        StrategyId = strategyId,
-                        ExternalId = platformTrade.ExternalId,
-                        PnL = importedTrade.PnL
-                    });
+                    added++;
                 }
+                await _unitOfWork.SaveChangesAsync();
             }
         }
         catch (Exception ex)
