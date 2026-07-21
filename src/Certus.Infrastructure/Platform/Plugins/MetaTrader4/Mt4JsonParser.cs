@@ -101,14 +101,20 @@ public class Mt4JsonParser : IPlatformDataParser
         try
         {
             var json = JsonSerializer.Deserialize<Mt4TradesData>(data, options);
-            if (json?.Trades != null)
+            if (json != null)
             {
-                return json.Trades.Select(t => MapTrade(t, json.Timestamp)).ToList();
+                // Successfully deserialized as wrapped format (even if Trades is null)
+                return json.Trades?.Select(t => MapTrade(t, json.Timestamp)).ToList()
+                    ?? new List<PlatformTrade>();
             }
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            // Not wrapped format, fall through to NDJSON
+            // If input looks like a JSON object but failed to parse, it's invalid JSON
+            if (data.AsSpan().TrimStart().StartsWith('{'))
+                throw;
+
+            // Otherwise fall through to NDJSON
         }
 
         // NDJSON format: one JSON object per line
