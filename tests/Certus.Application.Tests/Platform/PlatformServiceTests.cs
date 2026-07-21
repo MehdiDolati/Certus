@@ -10,6 +10,7 @@ using Certus.Domain.RiskAndPortfolio.Repositories;
 using Certus.Domain.SharedKernel;
 using Certus.Infrastructure.Platform;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 
 namespace Certus.Application.Tests.Platform;
@@ -24,6 +25,8 @@ public class PlatformServiceTests
     private readonly Mock<IFileImportService> _fileImportServiceMock;
     private readonly InMemoryConnectionStatusStore _statusStore;
     private readonly Mock<IDomainEventDispatcher> _eventDispatcherMock;
+    private readonly Mock<IServiceScopeFactory> _scopeFactoryMock;
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
     private readonly PlatformService _sut;
 
     public PlatformServiceTests()
@@ -36,6 +39,8 @@ public class PlatformServiceTests
         _fileImportServiceMock = new Mock<IFileImportService>();
         _statusStore = new InMemoryConnectionStatusStore();
         _eventDispatcherMock = new Mock<IDomainEventDispatcher>();
+        _scopeFactoryMock = new Mock<IServiceScopeFactory>();
+        _unitOfWorkMock = new Mock<IUnitOfWork>();
 
         _sut = new PlatformService(
             _pluginLoaderMock.Object,
@@ -45,7 +50,9 @@ public class PlatformServiceTests
             _tradeRepoMock.Object,
             _fileImportServiceMock.Object,
             _statusStore,
-            _eventDispatcherMock.Object);
+            _eventDispatcherMock.Object,
+            _scopeFactoryMock.Object,
+            _unitOfWorkMock.Object);
     }
 
     [Fact]

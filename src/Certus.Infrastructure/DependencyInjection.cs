@@ -37,6 +37,7 @@ public static class DependencyInjection
 
         // Shared
         services.AddScoped<IDomainEventDispatcher, InMemoryDomainEventDispatcher>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         // RiskAndPortfolio
         services.AddScoped<IPortfolioRepository, PortfolioRepository>();
@@ -74,6 +75,7 @@ public static class DependencyInjection
         services.AddSingleton<PluginLoader>();
         services.AddSingleton<IPlatformPluginLoader>(sp => sp.GetRequiredService<PluginLoader>());
         services.AddSingleton<IPlatformPlugin, Mt4Plugin>();
+        services.AddHostedService<ConnectionWatcherService>();
 
         return services;
     }

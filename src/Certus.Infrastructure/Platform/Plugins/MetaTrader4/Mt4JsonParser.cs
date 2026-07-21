@@ -97,29 +97,62 @@ public class Mt4JsonParser : IPlatformDataParser
             PropertyNameCaseInsensitive = true
         };
 
-        var json = JsonSerializer.Deserialize<Mt4TradesData>(data, options);
-        
-        if (json?.Trades == null)
-            return new List<PlatformTrade>();
-
-        return json.Trades.Select(t => new PlatformTrade
+        // Try wrapped format first: {"Timestamp":"...","Trades":[...]}
+        try
         {
-            ExternalId = t.Id,
-            StrategyExternalId = t.StrategyId,
-            Symbol = t.Symbol,
-            Side = t.Side.ToLower() == "buy" ? TradeSide.Buy : TradeSide.Sell,
-            Volume = t.Volume,
-            OpenPrice = t.OpenPrice,
-            ClosePrice = t.ClosePrice,
-            StopLoss = t.StopLoss,
-            TakeProfit = t.TakeProfit,
-            Profit = t.Profit,
-            Commission = t.Commission,
-            Swap = t.Swap,
-            OpenTime = t.OpenTime,
-            CloseTime = t.CloseTime,
-            Comment = t.Comment,
-            Timestamp = json.Timestamp
-        }).ToList();
+            var json = JsonSerializer.Deserialize<Mt4TradesData>(data, options);
+            if (json?.Trades != null)
+            {
+                return json.Trades.Select(t => MapTrade(t, json.Timestamp)).ToList();
+            }
+        }
+        catch (JsonException)
+        {
+            // Not wrapped format, fall through to NDJSON
+        }
+
+        // NDJSON format: one JSON object per line
+        var trades = new List<PlatformTrade>();
+        var timestamp = DateTime.UtcNow;
+
+        foreach (var line in data.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var trimmed = line.Trim();
+            if (string.IsNullOrEmpty(trimmed) || trimmed[0] != '{')
+                continue;
+
+            try
+            {
+                var trade = JsonSerializer.Deserialize<Mt4TradeInfo>(trimmed, options);
+                if (trade != null)
+                    trades.Add(MapTrade(trade, timestamp));
+            }
+            catch (JsonException)
+            {
+                // Skip malformed lines
+            }
+        }
+
+        return trades;
     }
+
+    private static PlatformTrade MapTrade(Mt4TradeInfo t, DateTime timestamp) => new()
+    {
+        ExternalId = t.Id,
+        StrategyExternalId = t.StrategyId,
+        Symbol = t.Symbol,
+        Side = t.Side.ToLower() == "buy" ? TradeSide.Buy : TradeSide.Sell,
+        Volume = t.Volume,
+        OpenPrice = t.OpenPrice,
+        ClosePrice = t.ClosePrice,
+        StopLoss = t.StopLoss,
+        TakeProfit = t.TakeProfit,
+        Profit = t.Profit,
+        Commission = t.Commission,
+        Swap = t.Swap,
+        OpenTime = t.OpenTime,
+        CloseTime = t.CloseTime,
+        Comment = t.Comment,
+        Timestamp = timestamp
+    };
 }

@@ -14,4 +14,5 @@ public interface IPlatformService
     Task<List<PlatformStrategyDto>> GetStrategiesAsync(Guid connectionId, string portfolioExternalId);
     Task<ImportTradesResult> ImportTradesAsync(Guid connectionId, string strategyExternalId, DateTime? from = null, DateTime? to = null);
     Task<PlatformDashboardDto> GetDashboardAsync();
+    Task ImportFromChangeAsync(Guid connectionId, string filePath);
 }

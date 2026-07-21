@@ -28,7 +28,7 @@ public class PluginLoader : IPlatformPluginLoader
     {
         lock (_lock)
         {
-            return _plugins.FirstOrDefault(p => p.PluginId == pluginId);
+            return _plugins.FirstOrDefault(p => string.Equals(p.PluginId, pluginId, StringComparison.OrdinalIgnoreCase));
         }
     }
 
