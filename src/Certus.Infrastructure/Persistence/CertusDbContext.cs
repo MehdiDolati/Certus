@@ -5,6 +5,7 @@ using Certus.Domain.Execution.Aggregates;
 using Certus.Domain.Evaluation.Entities;
 using Certus.Domain.Evaluation.Aggregates;
 using Certus.Domain.Platform.Aggregates;
+using Certus.Domain.Platform.Entities;
 using Certus.Domain.Platform.Repositories;
 using Certus.Domain.SharedKernel;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +33,7 @@ public class CertusDbContext : DbContext
     public DbSet<PlatformConnection> PlatformConnections => Set<PlatformConnection>();
     public DbSet<PortfolioDeployment> PortfolioDeployments => Set<PortfolioDeployment>();
     public DbSet<ImportedTrade> ImportedTrades => Set<ImportedTrade>();
+    public DbSet<StrategyMapping> StrategyMappings => Set<StrategyMapping>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

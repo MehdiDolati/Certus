@@ -51,13 +51,13 @@ public class FileImportServiceTests : IDisposable
         var filePath = Path.Combine(_testDirectory, "portfolio.json");
         File.WriteAllText(filePath, "{\"initial\": true}");
 
-        var eventRaised = false;
+        using var eventReceived = new ManualResetEventSlim(false);
         FileImportEventArgs? receivedArgs = null;
 
         _sut.FileChanged += (sender, args) =>
         {
-            eventRaised = true;
             receivedArgs = args;
+            eventReceived.Set();
         };
 
         _sut.StartWatching(connectionId, filePath);
@@ -68,10 +68,10 @@ public class FileImportServiceTests : IDisposable
         // Modify the file
         File.WriteAllText(filePath, "{\"updated\": true}");
 
-        // Wait for event
-        Thread.Sleep(500);
+        // Wait for event with a generous timeout for CI
+        var raised = eventReceived.Wait(TimeSpan.FromSeconds(5));
 
-        eventRaised.Should().BeTrue();
+        raised.Should().BeTrue("the FileSystemWatcher should fire a Changed event within the timeout");
         receivedArgs.Should().NotBeNull();
         receivedArgs!.ConnectionId.Should().Be(connectionId);
     }
