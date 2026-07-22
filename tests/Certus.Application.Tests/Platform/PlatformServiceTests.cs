@@ -1,6 +1,7 @@
 using Certus.Application.Platform;
 using Certus.Application.Platform.DTOs;
 using Certus.Domain.Platform.Aggregates;
+using Certus.Domain.Platform.Entities;
 using Certus.Domain.Platform.Enums;
 using Certus.Domain.Platform.Events;
 using Certus.Domain.Platform.Interfaces;
@@ -8,6 +9,10 @@ using Certus.Domain.Platform.Repositories;
 using Certus.Domain.Platform.ValueObjects;
 using Certus.Domain.RiskAndPortfolio.Repositories;
 using Certus.Domain.SharedKernel;
+using Certus.Domain.Strategy.Aggregates;
+using Certus.Domain.Strategy.Enums;
+using Certus.Domain.Strategy.Repositories;
+using Certus.Domain.Strategy.ValueObjects;
 using Certus.Infrastructure.Platform;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +32,8 @@ public class PlatformServiceTests
     private readonly Mock<IDomainEventDispatcher> _eventDispatcherMock;
     private readonly Mock<IServiceScopeFactory> _scopeFactoryMock;
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
+    private readonly Mock<IStrategyMappingRepository> _strategyMappingRepoMock;
+    private readonly Mock<IStrategyDefinitionRepository> _strategyRepoMock;
     private readonly PlatformService _sut;
 
     public PlatformServiceTests()
@@ -41,6 +48,8 @@ public class PlatformServiceTests
         _eventDispatcherMock = new Mock<IDomainEventDispatcher>();
         _scopeFactoryMock = new Mock<IServiceScopeFactory>();
         _unitOfWorkMock = new Mock<IUnitOfWork>();
+        _strategyMappingRepoMock = new Mock<IStrategyMappingRepository>();
+        _strategyRepoMock = new Mock<IStrategyDefinitionRepository>();
 
         _sut = new PlatformService(
             _pluginLoaderMock.Object,
@@ -52,7 +61,9 @@ public class PlatformServiceTests
             _statusStore,
             _eventDispatcherMock.Object,
             _scopeFactoryMock.Object,
-            _unitOfWorkMock.Object);
+            _unitOfWorkMock.Object,
+            _strategyMappingRepoMock.Object,
+            _strategyRepoMock.Object);
     }
 
     [Fact]
@@ -201,8 +212,11 @@ public class PlatformServiceTests
         _tradeRepoMock.Setup(r => r.GetByExternalIdAsync("12345"))
             .ReturnsAsync((ImportedTrade?)null);
         _tradeRepoMock.Setup(r => r.AddAsync(It.IsAny<ImportedTrade>())).Returns(Task.CompletedTask);
-        _tradeRepoMock.Setup(r => r.GetByStrategyIdAsync(Guid.Empty))
-            .ReturnsAsync(new List<ImportedTrade>());
+
+        var strategyId = Guid.NewGuid();
+        _strategyMappingRepoMock
+            .Setup(r => r.GetByConnectionAndExternalIdAsync(connection.Id, "EA_01"))
+            .ReturnsAsync(new StrategyMapping(Guid.NewGuid(), connection.Id, "EA_01", strategyId));
 
         var result = await _sut.ImportTradesAsync(connection.Id, "EA_01");
 
@@ -224,9 +238,7 @@ public class PlatformServiceTests
         _dataRepoMock.Setup(r => r.GetTradesByStrategyAsync(connection.Id, "EA_01"))
             .ReturnsAsync(trades);
         _tradeRepoMock.Setup(r => r.GetByExternalIdAsync("12345"))
-            .ReturnsAsync(new ImportedTrade { ExternalId = "12345" });
-        _tradeRepoMock.Setup(r => r.GetByStrategyIdAsync(Guid.Empty))
-            .ReturnsAsync(new List<ImportedTrade>());
+            .ReturnsAsync(new ImportedTrade { ExternalId = "12345", StrategyId = Guid.NewGuid() });
 
         var result = await _sut.ImportTradesAsync(connection.Id, "EA_01");
 
@@ -301,8 +313,11 @@ public class PlatformServiceTests
         _tradeRepoMock.Setup(r => r.GetByExternalIdAsync(It.IsAny<string>()))
             .ReturnsAsync((ImportedTrade?)null);
         _tradeRepoMock.Setup(r => r.AddAsync(It.IsAny<ImportedTrade>())).Returns(Task.CompletedTask);
-        _tradeRepoMock.Setup(r => r.GetByStrategyIdAsync(Guid.Empty))
-            .ReturnsAsync(new List<ImportedTrade>());
+
+        var strategyId = Guid.NewGuid();
+        _strategyMappingRepoMock
+            .Setup(r => r.GetByConnectionAndExternalIdAsync(connection.Id, "EA_01"))
+            .ReturnsAsync(new StrategyMapping(Guid.NewGuid(), connection.Id, "EA_01", strategyId));
 
         var result = await _sut.ImportTradesAsync(connection.Id, "EA_01",
             from: now.AddDays(-5), to: now.AddDays(-1));
@@ -623,6 +638,134 @@ public class PlatformServiceTests
         {
             if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
         }
+    }
+
+    [Fact]
+    public async Task ImportTradesAsync_Should_Create_Strategy_And_Mapping_When_None_Exists()
+    {
+        var connection = CreateConnection();
+        _connectionRepoMock.Setup(r => r.GetByIdAsync(connection.Id)).ReturnsAsync(connection);
+
+        var strategyId = Guid.NewGuid();
+        var strategyDef = new StrategyDefinition(strategyId, "EA_01", new StrategyType(StrategyCategory.Custom, "ExpertAdvisor"), 0);
+
+        _strategyMappingRepoMock
+            .Setup(r => r.GetByConnectionAndExternalIdAsync(connection.Id, "EA_01"))
+            .ReturnsAsync((StrategyMapping?)null);
+        _strategyRepoMock
+            .Setup(r => r.GetAllAsync())
+            .ReturnsAsync(new List<StrategyDefinition>());
+        _strategyRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<StrategyDefinition>()))
+            .Returns(Task.CompletedTask);
+        _strategyRepoMock
+            .Setup(r => r.SaveChangesAsync())
+            .ReturnsAsync(1);
+        _strategyMappingRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<StrategyMapping>()))
+            .Returns(Task.CompletedTask);
+
+        var trades = new List<PlatformTrade>
+        {
+            new()
+            {
+                ExternalId = "12345",
+                StrategyExternalId = "EA_01",
+                Symbol = "EURUSD",
+                Side = TradeSide.Buy,
+                Volume = 0.1m,
+                OpenPrice = 1.085m,
+                Profit = 25m,
+                OpenTime = DateTime.UtcNow.AddHours(-1)
+            }
+        };
+        _dataRepoMock.Setup(r => r.GetTradesByStrategyAsync(connection.Id, "EA_01"))
+            .ReturnsAsync(trades);
+        _tradeRepoMock.Setup(r => r.GetByExternalIdAsync("12345"))
+            .ReturnsAsync((ImportedTrade?)null);
+        _tradeRepoMock.Setup(r => r.AddAsync(It.IsAny<ImportedTrade>())).Returns(Task.CompletedTask);
+
+        var result = await _sut.ImportTradesAsync(connection.Id, "EA_01");
+
+        result.TradesImported.Should().Be(1);
+        _strategyRepoMock.Verify(r => r.AddAsync(It.IsAny<StrategyDefinition>()), Times.Once);
+        _strategyMappingRepoMock.Verify(r => r.AddAsync(It.IsAny<StrategyMapping>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ImportTradesAsync_Should_Use_Existing_Mapping_When_Found()
+    {
+        var connection = CreateConnection();
+        _connectionRepoMock.Setup(r => r.GetByIdAsync(connection.Id)).ReturnsAsync(connection);
+
+        var strategyId = Guid.NewGuid();
+        var existingMapping = new StrategyMapping(Guid.NewGuid(), connection.Id, "EA_01", strategyId);
+
+        _strategyMappingRepoMock
+            .Setup(r => r.GetByConnectionAndExternalIdAsync(connection.Id, "EA_01"))
+            .ReturnsAsync(existingMapping);
+
+        var trades = new List<PlatformTrade>
+        {
+            new()
+            {
+                ExternalId = "12345",
+                StrategyExternalId = "EA_01",
+                Symbol = "EURUSD",
+                Side = TradeSide.Buy,
+                Volume = 0.1m,
+                OpenPrice = 1.085m,
+                Profit = 25m,
+                OpenTime = DateTime.UtcNow.AddHours(-1)
+            }
+        };
+        _dataRepoMock.Setup(r => r.GetTradesByStrategyAsync(connection.Id, "EA_01"))
+            .ReturnsAsync(trades);
+        _tradeRepoMock.Setup(r => r.GetByExternalIdAsync("12345"))
+            .ReturnsAsync((ImportedTrade?)null);
+        _tradeRepoMock.Setup(r => r.AddAsync(It.IsAny<ImportedTrade>())).Returns(Task.CompletedTask);
+
+        var result = await _sut.ImportTradesAsync(connection.Id, "EA_01");
+
+        result.TradesImported.Should().Be(1);
+        _strategyRepoMock.Verify(r => r.AddAsync(It.IsAny<StrategyDefinition>()), Times.Never);
+        _strategyMappingRepoMock.Verify(r => r.AddAsync(It.IsAny<StrategyMapping>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportTradesAsync_Should_Return_Empty_When_StrategyExternalId_Is_Empty()
+    {
+        var connection = CreateConnection();
+        _connectionRepoMock.Setup(r => r.GetByIdAsync(connection.Id)).ReturnsAsync(connection);
+
+        var trades = new List<PlatformTrade>
+        {
+            new()
+            {
+                ExternalId = "12345",
+                StrategyExternalId = "",
+                Symbol = "EURUSD",
+                Side = TradeSide.Buy,
+                Volume = 0.1m,
+                OpenPrice = 1.085m,
+                Profit = 25m,
+                OpenTime = DateTime.UtcNow.AddHours(-1)
+            }
+        };
+        _dataRepoMock.Setup(r => r.GetTradesByStrategyAsync(connection.Id, ""))
+            .ReturnsAsync(trades);
+        _tradeRepoMock.Setup(r => r.GetByExternalIdAsync("12345"))
+            .ReturnsAsync((ImportedTrade?)null);
+        _tradeRepoMock.Setup(r => r.AddAsync(It.IsAny<ImportedTrade>())).Returns(Task.CompletedTask);
+
+        var result = await _sut.ImportTradesAsync(connection.Id, "");
+
+        result.TradesImported.Should().Be(1);
+        // StrategyId should be Guid.Empty when external ID is empty
+        _tradeRepoMock.Verify(r => r.AddAsync(
+            It.Is<ImportedTrade>(t => t.StrategyId == Guid.Empty)), Times.Once);
+        _strategyRepoMock.Verify(r => r.AddAsync(It.IsAny<StrategyDefinition>()), Times.Never);
+        _strategyMappingRepoMock.Verify(r => r.AddAsync(It.IsAny<StrategyMapping>()), Times.Never);
     }
 
     private static PlatformConnection CreateConnection()

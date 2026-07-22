@@ -41,7 +41,21 @@ public class ConnectionWatcherService : BackgroundService
 
                 try
                 {
-                    _fileImportService.StartWatching(connection.Id, connection.Config.FilePath);
+                    // Watch the directory for portfolio_status.json
+                    var watchPath = Directory.Exists(connection.Config.FilePath)
+                        ? connection.Config.FilePath
+                        : Path.GetDirectoryName(connection.Config.FilePath) ?? connection.Config.FilePath;
+                    _fileImportService.StartWatchingDirectory(connection.Id, watchPath,
+                        new[] { "portfolio_status.json" });
+
+                    // Also watch trades.json as a dedicated single-file watcher
+                    // FileSystemWatcher often misses changes to this file when watched via directory
+                    var tradesPath = Path.Combine(watchPath, "trades.json");
+                    if (File.Exists(tradesPath) || Directory.Exists(watchPath))
+                    {
+                        _fileImportService.StartWatching(connection.Id, tradesPath);
+                    }
+
                     RegisterHandler(connection.Id);
 
                     // Initial import: process existing files so stale data is picked up
@@ -54,12 +68,14 @@ public class ConnectionWatcherService : BackgroundService
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "Failed to restore watcher for connection {ConnectionId}", connection.Id);
+                    Console.WriteLine($"[ConnectionWatcherService] Error setting up watcher: {ex.Message}");
                 }
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to restore file watchers on startup");
+            Console.WriteLine($"[ConnectionWatcherService] Error: {ex.Message}");
         }
     }
 

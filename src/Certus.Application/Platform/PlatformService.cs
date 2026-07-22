@@ -1,5 +1,6 @@
 using Certus.Application.Platform.DTOs;
 using Certus.Domain.Platform.Aggregates;
+using Certus.Domain.Platform.Entities;
 using Certus.Domain.Platform.Enums;
 using Certus.Domain.Platform.Events;
 using Certus.Domain.Platform.Interfaces;
@@ -8,6 +9,9 @@ using Certus.Domain.Platform.ValueObjects;
 using Certus.Domain.RiskAndPortfolio.Aggregates;
 using Certus.Domain.RiskAndPortfolio.Repositories;
 using Certus.Domain.SharedKernel;
+using Certus.Domain.Strategy.Enums;
+using Certus.Domain.Strategy.Repositories;
+using Certus.Domain.Strategy.ValueObjects;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Certus.Application.Platform;
@@ -24,6 +28,9 @@ public class PlatformService : IPlatformService
     private readonly IDomainEventDispatcher _eventDispatcher;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IStrategyMappingRepository _strategyMappingRepo;
+    private readonly IStrategyDefinitionRepository _strategyRepo;
+    private readonly Dictionary<(Guid, string), Guid> _pendingMappings = new();
 
     public PlatformService(
         IPlatformPluginLoader pluginLoader,
@@ -35,7 +42,9 @@ public class PlatformService : IPlatformService
         IConnectionStatusStore statusStore,
         IDomainEventDispatcher eventDispatcher,
         IServiceScopeFactory scopeFactory,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IStrategyMappingRepository strategyMappingRepo,
+        IStrategyDefinitionRepository strategyRepo)
     {
         _pluginLoader = pluginLoader;
         _connectionRepo = connectionRepo;
@@ -47,6 +56,8 @@ public class PlatformService : IPlatformService
         _eventDispatcher = eventDispatcher;
         _scopeFactory = scopeFactory;
         _unitOfWork = unitOfWork;
+        _strategyMappingRepo = strategyMappingRepo;
+        _strategyRepo = strategyRepo;
     }
 
     public async Task<PlatformConnectionDto> ConnectAsync(ConnectPlatformRequest request)
@@ -75,7 +86,16 @@ public class PlatformService : IPlatformService
                 if (match.Config.UseFileWatcher && !string.IsNullOrEmpty(match.Config.FilePath)
                     && !_fileImportService.IsWatching(match.Id))
                 {
-                    _fileImportService.StartWatching(match.Id, match.Config.FilePath);
+                    var watchPath = Directory.Exists(match.Config.FilePath)
+                        ? match.Config.FilePath
+                        : Path.GetDirectoryName(match.Config.FilePath) ?? match.Config.FilePath;
+                    _fileImportService.StartWatchingDirectory(match.Id, watchPath,
+                        new[] { "portfolio_status.json" });
+
+                    // Dedicated watcher for trades.json (FSW often misses directory-level changes)
+                    var tradesPath = Path.Combine(watchPath, "trades.json");
+                    _fileImportService.StartWatchingFile(match.Id, tradesPath, "trades");
+
                     RegisterFileWatcher(match.Id);
                 }
 
@@ -110,7 +130,16 @@ public class PlatformService : IPlatformService
 
         if (!string.IsNullOrEmpty(request.FilePath) && request.UseFileWatcher)
         {
-            _fileImportService.StartWatching(connection.Id, request.FilePath);
+            var watchPath = Directory.Exists(request.FilePath)
+                ? request.FilePath
+                : Path.GetDirectoryName(request.FilePath) ?? request.FilePath;
+            _fileImportService.StartWatchingDirectory(connection.Id, watchPath,
+                new[] { "portfolio_status.json" });
+
+            // Dedicated watcher for trades.json
+            var tradesPath = Path.Combine(watchPath, "trades.json");
+            _fileImportService.StartWatchingFile(connection.Id, tradesPath, "trades");
+
             RegisterFileWatcher(connection.Id);
         }
 
@@ -259,6 +288,7 @@ public class PlatformService : IPlatformService
 
         int imported = 0;
         int skipped = 0;
+        int strategyBackfilled = 0;
         decimal totalPnL = 0;
         var errors = new List<string>();
 
@@ -269,6 +299,17 @@ public class PlatformService : IPlatformService
                 var existing = await _tradeRepo.GetByExternalIdAsync(trade.ExternalId);
                 if (existing != null)
                 {
+                    // Backfill StrategyId if missing
+                    if (existing.StrategyId == Guid.Empty && !string.IsNullOrEmpty(strategyExternalId))
+                    {
+                        var mappedStrategyId = await FindOrCreateStrategyMappingAsync(connectionId, strategyExternalId);
+                        if (mappedStrategyId != Guid.Empty)
+                        {
+                            existing.StrategyId = mappedStrategyId;
+                            _tradeRepo.Update(existing);
+                            strategyBackfilled++;
+                        }
+                    }
                     skipped++;
                     continue;
                 }
@@ -319,6 +360,8 @@ public class PlatformService : IPlatformService
         if (imported > 0)
             await _unitOfWork.SaveChangesAsync();
 
+        _pendingMappings.Clear();
+
         return new ImportTradesResult
         {
             TradesImported = imported,
@@ -367,9 +410,45 @@ public class PlatformService : IPlatformService
 
     private async Task<Guid> FindOrCreateStrategyMappingAsync(Guid connectionId, string strategyExternalId)
     {
-        // TODO: Implement strategy mapping table to link platform external IDs to internal strategy GUIDs
-        // For now, trades import successfully without strategy linkage
-        return Guid.Empty;
+        if (string.IsNullOrEmpty(strategyExternalId))
+            return Guid.Empty;
+
+        var key = (connectionId, strategyExternalId);
+
+        // Check in-memory cache first (for mappings created in this batch)
+        if (_pendingMappings.TryGetValue(key, out var cachedId))
+            return cachedId;
+
+        // Check existing mapping in DB
+        var existing = await _strategyMappingRepo.GetByConnectionAndExternalIdAsync(connectionId, strategyExternalId);
+        if (existing != null)
+        {
+            _pendingMappings[key] = existing.StrategyDefinitionId;
+            return existing.StrategyDefinitionId;
+        }
+
+        // Find or create StrategyDefinition by name
+        var strategies = await _strategyRepo.GetAllAsync();
+        var strategy = strategies.FirstOrDefault(s =>
+            s.Name.Equals(strategyExternalId, StringComparison.OrdinalIgnoreCase));
+
+        if (strategy == null)
+        {
+            strategy = new Domain.Strategy.Aggregates.StrategyDefinition(
+                Guid.NewGuid(),
+                strategyExternalId,
+                new StrategyType(StrategyCategory.Custom, "ExpertAdvisor"),
+                targetReturn: 0);
+            await _strategyRepo.AddAsync(strategy);
+            await _strategyRepo.SaveChangesAsync();
+        }
+
+        // Create mapping
+        var mapping = new StrategyMapping(Guid.NewGuid(), connectionId, strategyExternalId, strategy.Id);
+        await _strategyMappingRepo.AddAsync(mapping);
+        _pendingMappings[key] = strategy.Id;
+
+        return strategy.Id;
     }
 
     private void RegisterFileWatcher(Guid connectionId)
@@ -441,6 +520,62 @@ public class PlatformService : IPlatformService
                         _portfolioRepo.Update(existing);
                         await _unitOfWork.SaveChangesAsync();
                     }
+
+                    // Import open positions from strategies as trades
+                    int tradesAdded = 0;
+                    int tradesUpdated = 0;
+                    foreach (var strategy in platformPortfolio.Strategies)
+                    {
+                        foreach (var openPos in strategy.OpenPositions)
+                        {
+                            var ticketStr = openPos.Ticket.ToString();
+                            var existingTrade = await _tradeRepo.GetByExternalIdAsync(ticketStr);
+                            if (existingTrade != null)
+                            {
+                                // Update profit for open position
+                                if (existingTrade.Profit != openPos.Profit)
+                                {
+                                    existingTrade.Profit = openPos.Profit;
+                                    _tradeRepo.Update(existingTrade);
+                                    tradesUpdated++;
+                                }
+                                continue;
+                            }
+
+                            var strategyId = await FindOrCreateStrategyMappingAsync(connection.Id, strategy.ExternalId);
+
+                            var importedTrade = new ImportedTrade
+                            {
+                                Id = Guid.NewGuid(),
+                                ExternalId = ticketStr,
+                                StrategyId = strategyId,
+                                PortfolioId = Guid.Empty,
+                                ConnectionId = connection.Id,
+                                Symbol = openPos.Symbol,
+                                Side = openPos.Type,
+                                Volume = openPos.Volume,
+                                OpenPrice = openPos.OpenPrice,
+                                ClosePrice = null,
+                                StopLoss = openPos.StopLoss,
+                                TakeProfit = openPos.TakeProfit,
+                                Profit = openPos.Profit,
+                                Commission = 0,
+                                Swap = 0,
+                                OpenTime = openPos.OpenTime,
+                                CloseTime = null,
+                                Comment = openPos.Comment,
+                                ImportedAt = DateTime.UtcNow
+                            };
+
+                            await _tradeRepo.AddAsync(importedTrade);
+                            tradesAdded++;
+                        }
+                    }
+                    if (tradesAdded > 0 || tradesUpdated > 0)
+                    {
+                        await _unitOfWork.SaveChangesAsync();
+                        _pendingMappings.Clear();
+                    }
                 }
             }
             else if (fileName.Contains("trade"))
@@ -456,11 +591,24 @@ public class PlatformService : IPlatformService
 
                 int added = 0;
                 int updated = 0;
+                int strategyBackfilled = 0;
                 foreach (var platformTrade in deduped)
                 {
                     var existingTrade = await _tradeRepo.GetByExternalIdAsync(platformTrade.ExternalId);
                     if (existingTrade != null)
                     {
+                        // Backfill StrategyId if missing
+                        if (existingTrade.StrategyId == Guid.Empty && !string.IsNullOrEmpty(platformTrade.StrategyExternalId))
+                        {
+                            var backfilledId = await FindOrCreateStrategyMappingAsync(connection.Id, platformTrade.StrategyExternalId);
+                            if (backfilledId != Guid.Empty)
+                            {
+                                existingTrade.StrategyId = backfilledId;
+                                _tradeRepo.Update(existingTrade);
+                                strategyBackfilled++;
+                            }
+                        }
+
                         if (platformTrade.CloseTime.HasValue && existingTrade.CloseTime == null)
                         {
                             existingTrade.ClosePrice = platformTrade.ClosePrice;
@@ -503,6 +651,7 @@ public class PlatformService : IPlatformService
                     added++;
                 }
                 await _unitOfWork.SaveChangesAsync();
+                _pendingMappings.Clear();
             }
         }
         catch (Exception ex)

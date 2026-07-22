@@ -15,6 +15,16 @@ public class FileImportService : IFileImportService
 
     public void StartWatching(Guid connectionId, string filePath)
     {
+        StartWatchingInternal(connectionId.ToString(), filePath);
+    }
+
+    public void StartWatchingFile(Guid connectionId, string filePath, string watcherKey)
+    {
+        StartWatchingInternal($"{connectionId}_{watcherKey}", filePath);
+    }
+
+    private void StartWatchingInternal(string key, string filePath)
+    {
         if (_disposed)
             throw new ObjectDisposedException(nameof(FileImportService));
 
@@ -42,9 +52,9 @@ public class FileImportService : IFileImportService
 
         lock (_lock)
         {
-            if (_watchers.ContainsKey(connectionId.ToString()))
+            if (_watchers.ContainsKey(key))
             {
-                StopWatching(connectionId);
+                StopWatchingByKey(key);
             }
 
             var watcher = new FileSystemWatcher
@@ -59,10 +69,10 @@ public class FileImportService : IFileImportService
             watcher.Created += OnFileCreated;
             watcher.Error += OnWatcherError;
 
-            _watchers[connectionId.ToString()] = watcher;
+            _watchers[key] = watcher;
             var watchedPath = filter == "*.*" ? directory : Path.Combine(directory, filter);
             _lastModified[watchedPath] = DateTime.MinValue;
-            _watchedPaths[connectionId.ToString()] = watchedPath;
+            _watchedPaths[key] = watchedPath;
         }
     }
 
@@ -104,9 +114,25 @@ public class FileImportService : IFileImportService
 
     public void StopWatching(Guid connectionId)
     {
+        StopWatchingByKey(connectionId.ToString());
+
+        // Also stop any composite-key watchers (e.g., "connectionId_trades")
         lock (_lock)
         {
-            var key = connectionId.ToString();
+            var compositeKeys = _watchers.Keys
+                .Where(k => k.StartsWith(connectionId.ToString() + "_"))
+                .ToList();
+            foreach (var compositeKey in compositeKeys)
+            {
+                StopWatchingByKey(compositeKey);
+            }
+        }
+    }
+
+    private void StopWatchingByKey(string key)
+    {
+        lock (_lock)
+        {
             if (_watchers.TryGetValue(key, out var watcher))
             {
                 watcher.EnableRaisingEvents = false;
@@ -304,15 +330,22 @@ public class FileImportService : IFileImportService
 
                 // Directory watcher: _watchedPaths stores the directory
                 if (fileDir != null && fileDir.Equals(watchedPath, StringComparison.OrdinalIgnoreCase))
-                    return kvp.Key;
+                    return ExtractConnectionId(kvp.Key);
 
                 // Single-file watcher: _watchedPaths stores the full file path
                 if (filePath.Equals(watchedPath, StringComparison.OrdinalIgnoreCase))
-                    return kvp.Key;
+                    return ExtractConnectionId(kvp.Key);
             }
 
             return null;
         }
+    }
+
+    private static string ExtractConnectionId(string key)
+    {
+        // Composite keys are in format "connectionId_watcherKey"
+        var underscoreIndex = key.IndexOf('_');
+        return underscoreIndex > 0 ? key[..underscoreIndex] : key;
     }
 
     public void Dispose()

@@ -70,6 +70,7 @@ public static class DependencyInjection
         services.AddScoped<IPlatformDataRepository, PlatformDataRepository>();
         services.AddScoped<IImportedTradeRepository, ImportedTradeRepository>();
         services.AddScoped<IPortfolioDeploymentRepository, PortfolioDeploymentRepository>();
+        services.AddScoped<IStrategyMappingRepository, StrategyMappingRepository>();
         services.AddSingleton<IFileImportService, FileImportService>();
         services.AddSingleton<IConnectionStatusStore, InMemoryConnectionStatusStore>();
         services.AddSingleton<PluginLoader>();
