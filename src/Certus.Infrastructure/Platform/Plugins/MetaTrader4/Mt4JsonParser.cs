@@ -108,13 +108,12 @@ public class Mt4JsonParser : IPlatformDataParser
                     ?? new List<PlatformTrade>();
             }
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
-            // If input looks like a JSON object but failed to parse, it's invalid JSON
-            if (data.AsSpan().TrimStart().StartsWith('{'))
+            // If it looks like NDJSON (multiple lines with JSON objects), fall through
+            // Otherwise it's genuinely invalid JSON
+            if (!data.Contains('\n'))
                 throw;
-
-            // Otherwise fall through to NDJSON
         }
 
         // NDJSON format: one JSON object per line

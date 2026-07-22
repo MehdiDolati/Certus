@@ -1,0 +1,593 @@
+
+D:\Certus\src\Certus.Dashboard>dotnet run
+Using launch settings from D:\Certus\src\Certus.Dashboard\Properties\launchSettings.json...
+Building...
+Restore succeeded with 2 warning(s) in 0.8s
+    D:\Certus\src\Certus.Infrastructure\Certus.Infrastructure.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlit
+e3' 2.1.10 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q
+    D:\Certus\src\Certus.Dashboard\Certus.Dashboard.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.1.10
+ has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q
+  Certus.Infrastructure net10.0 succeeded with 1 warning(s) (0.4s) → D:\Certus\src\Certus.Infrastructure\bin\Debug\net10
+.0\Certus.Infrastructure.dll
+    D:\Certus\src\Certus.Infrastructure\Certus.Infrastructure.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlit
+e3' 2.1.10 has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q
+  Certus.Dashboard net10.0 succeeded with 1 warning(s) (0.8s) → bin\Debug\net10.0\Certus.Dashboard.dll
+    D:\Certus\src\Certus.Dashboard\Certus.Dashboard.csproj : warning NU1903: Package 'SQLitePCLRaw.lib.e_sqlite3' 2.1.10
+ has a known high severity vulnerability, https://github.com/advisories/GHSA-2m69-gcr7-jv3q
+warn: Microsoft.EntityFrameworkCore.Model.Validation[30000]
+      No store type was specified for the decimal property 'ClosePrice' on entity type 'ImportedTrade'. This will cause
+values to be silently truncated if they do not fit in the default precision and scale. Explicitly specify the SQL server
+ column type that can accommodate all the values in 'OnModelCreating' using 'HasColumnType', specify precision and scale
+ using 'HasPrecision', or configure a value converter using 'HasConversion'.
+warn: Microsoft.EntityFrameworkCore.Model.Validation[30000]
+      No store type was specified for the decimal property 'Commission' on entity type 'ImportedTrade'. This will cause
+values to be silently truncated if they do not fit in the default precision and scale. Explicitly specify the SQL server
+ column type that can accommodate all the values in 'OnModelCreating' using 'HasColumnType', specify precision and scale
+ using 'HasPrecision', or configure a value converter using 'HasConversion'.
+warn: Microsoft.EntityFrameworkCore.Model.Validation[30000]
+      No store type was specified for the decimal property 'OpenPrice' on entity type 'ImportedTrade'. This will cause v
+alues to be silently truncated if they do not fit in the default precision and scale. Explicitly specify the SQL server
+column type that can accommodate all the values in 'OnModelCreating' using 'HasColumnType', specify precision and scale
+using 'HasPrecision', or configure a value converter using 'HasConversion'.
+warn: Microsoft.EntityFrameworkCore.Model.Validation[30000]
+      No store type was specified for the decimal property 'Profit' on entity type 'ImportedTrade'. This will cause valu
+es to be silently truncated if they do not fit in the default precision and scale. Explicitly specify the SQL server col
+umn type that can accommodate all the values in 'OnModelCreating' using 'HasColumnType', specify precision and scale usi
+ng 'HasPrecision', or configure a value converter using 'HasConversion'.
+warn: Microsoft.EntityFrameworkCore.Model.Validation[30000]
+      No store type was specified for the decimal property 'StopLoss' on entity type 'ImportedTrade'. This will cause va
+lues to be silently truncated if they do not fit in the default precision and scale. Explicitly specify the SQL server c
+olumn type that can accommodate all the values in 'OnModelCreating' using 'HasColumnType', specify precision and scale u
+sing 'HasPrecision', or configure a value converter using 'HasConversion'.
+warn: Microsoft.EntityFrameworkCore.Model.Validation[30000]
+      No store type was specified for the decimal property 'Swap' on entity type 'ImportedTrade'. This will cause values
+ to be silently truncated if they do not fit in the default precision and scale. Explicitly specify the SQL server colum
+n type that can accommodate all the values in 'OnModelCreating' using 'HasColumnType', specify precision and scale using
+ 'HasPrecision', or configure a value converter using 'HasConversion'.
+warn: Microsoft.EntityFrameworkCore.Model.Validation[30000]
+      No store type was specified for the decimal property 'TakeProfit' on entity type 'ImportedTrade'. This will cause
+values to be silently truncated if they do not fit in the default precision and scale. Explicitly specify the SQL server
+ column type that can accommodate all the values in 'OnModelCreating' using 'HasColumnType', specify precision and scale
+ using 'HasPrecision', or configure a value converter using 'HasConversion'.
+warn: Microsoft.EntityFrameworkCore.Model.Validation[30000]
+      No store type was specified for the decimal property 'Volume' on entity type 'ImportedTrade'. This will cause valu
+es to be silently truncated if they do not fit in the default precision and scale. Explicitly specify the SQL server col
+umn type that can accommodate all the values in 'OnModelCreating' using 'HasColumnType', specify precision and scale usi
+ng 'HasPrecision', or configure a value converter using 'HasConversion'.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (19ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT 1
+info: Microsoft.EntityFrameworkCore.Migrations[20411]
+      Acquiring an exclusive lock for migration application. See https://aka.ms/efcore-docs-migrations-lock for more inf
+ormation if this takes too long.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (17ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      DECLARE @result int;
+      EXEC @result = sp_getapplock @Resource = '__EFMigrationsLock', @LockOwner = 'Session', @LockMode = 'Exclusive';
+      SELECT @result
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
+      BEGIN
+          CREATE TABLE [__EFMigrationsHistory] (
+              [MigrationId] nvarchar(150) NOT NULL,
+              [ProductVersion] nvarchar(32) NOT NULL,
+              CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
+          );
+      END;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+info: Microsoft.EntityFrameworkCore.Migrations[20405]
+      No migrations were applied. The database is already up to date.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      DECLARE @result int;
+      EXEC @result = sp_releaseapplock @Resource = '__EFMigrationsLock', @LockOwner = 'Session';
+      SELECT @result
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [Portfolios] AS [p]) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5046
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: D:\Certus\src\Certus.Dashboard
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[Id], [p].[CreatedAt], [p].[PlatformId], [p].[PlatformName], [p].[PortfolioDeploymentId], [p].[ConfigAp
+iKey], [p].[ConfigDataFormat], [p].[ConfigFilePath], [p].[ConfigPlatformType], [p].[ConfigPollingIntervalMs], [p].[Confi
+gPort], [p].[ConfigServerAddress], [p].[Config_StaleThresholdSeconds], [p].[ConfigUseFileWatcher]
+      FROM [PlatformConnections] AS [p]
+[ConnectionWatcherService] Found 1 connections to watch
+[ConnectionWatcherService] Setting up directory watcher for connection 2f78ce2f-a6b4-42c7-a6e7-4c6a5e89521b, watchPath=C
+:\Users\Mehdi\AppData\Roaming\MetaQuotes\Terminal\Common\Files\Certus
+[ConnectionWatcherService] Setting up trades.json file watcher for connection 2f78ce2f-a6b4-42c7-a6e7-4c6a5e89521b
+[PlatformService] ImportFromChangeAsync called for connection 2f78ce2f-a6b4-42c7-a6e7-4c6a5e89521b, file: C:\Users\Mehdi
+\AppData\Roaming\MetaQuotes\Terminal\Common\Files\Certus\portfolio_status.json
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__id_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [p].[Id], [p].[CreatedAt], [p].[PlatformId], [p].[PlatformName], [p].[PortfolioDeploymentId], [p].[C
+onfigApiKey], [p].[ConfigDataFormat], [p].[ConfigFilePath], [p].[ConfigPlatformType], [p].[ConfigPollingIntervalMs], [p]
+.[ConfigPort], [p].[ConfigServerAddress], [p].[Config_StaleThresholdSeconds], [p].[ConfigUseFileWatcher]
+      FROM [PlatformConnections] AS [p]
+      WHERE [p].[Id] = @__id_0
+[PlatformService] File content length: 440
+[PlatformService] File name: portfolio_status.json
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[Id], [p].[CreatedAt], [p].[CurrentMarketRegime], [p].[Description], [p].[ExternalPortfolioId], [p].[Is
+PlatformManaged], [p].[LastSyncedAt], [p].[Name], [p].[PlatformConnectionId], [p].[Status], [p].[TargetReturn], [p].[Tar
+getSharpe], [p].[UpdatedAt], [p].[AllocatedCapital], [p].[AllocatedCurrency]
+      FROM [Portfolios] AS [p]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (24ms) [Parameters=[@p14='?' (DbType = Guid), @p0='?' (DbType = DateTime2), @p1='?' (Size = 50)
+, @p2='?' (Size = 1000), @p3='?' (Size = 4000), @p4='?' (DbType = Boolean), @p5='?' (DbType = DateTime2), @p6='?' (Size
+= 200), @p7='?' (DbType = Guid), @p8='?' (Size = 50), @p9='?' (Precision = 18) (Scale = 6) (DbType = Decimal), @p10='?'
+(Precision = 18) (Scale = 6) (DbType = Decimal), @p11='?' (DbType = DateTime2), @p12='?' (Precision = 18) (Scale = 2) (D
+bType = Decimal), @p13='?' (Size = 10)], CommandType='Text', CommandTimeout='30']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [Portfolios] SET [CreatedAt] = @p0, [CurrentMarketRegime] = @p1, [Description] = @p2, [ExternalPortfolioId]
+ = @p3, [IsPlatformManaged] = @p4, [LastSyncedAt] = @p5, [Name] = @p6, [PlatformConnectionId] = @p7, [Status] = @p8, [Ta
+rgetReturn] = @p9, [TargetSharpe] = @p10, [UpdatedAt] = @p11, [AllocatedCapital] = @p12, [AllocatedCurrency] = @p13
+      OUTPUT 1
+      WHERE [Id] = @p14;
+[PlatformService] ImportFromChangeAsync called for connection 2f78ce2f-a6b4-42c7-a6e7-4c6a5e89521b, file: C:\Users\Mehdi
+\AppData\Roaming\MetaQuotes\Terminal\Common\Files\Certus\trades.json
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__id_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [p].[Id], [p].[CreatedAt], [p].[PlatformId], [p].[PlatformName], [p].[PortfolioDeploymentId], [p].[C
+onfigApiKey], [p].[ConfigDataFormat], [p].[ConfigFilePath], [p].[ConfigPlatformType], [p].[ConfigPollingIntervalMs], [p]
+.[ConfigPort], [p].[ConfigServerAddress], [p].[Config_StaleThresholdSeconds], [p].[ConfigUseFileWatcher]
+      FROM [PlatformConnections] AS [p]
+      WHERE [p].[Id] = @__id_0
+[PlatformService] File content length: 11855
+[PlatformService] File name: trades.json
+[PlatformService] Parsing trades from C:\Users\Mehdi\AppData\Roaming\MetaQuotes\Terminal\Common\Files\Certus\trades.json
+[PlatformService] Parsed 38 trades from file
+[PlatformService] After dedup: 22 unique trades
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__externalId_0='?' (Size = 100)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [i].[Id], [i].[ClosePrice], [i].[CloseTime], [i].[Comment], [i].[Commission], [i].[ConnectionId], [i
+].[ExternalId], [i].[ImportedAt], [i].[OpenPrice], [i].[OpenTime], [i].[PortfolioId], [i].[Profit], [i].[Side], [i].[Sto
+pLoss], [i].[StrategyId], [i].[Swap], [i].[Symbol], [i].[TakeProfit], [i].[Volume]
+      FROM [ImportedTrades] AS [i]
+      WHERE [i].[ExternalId] = @__externalId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__connectionId_0='?' (DbType = Guid), @__strategyExternalId_1='?' (Size = 1
+00)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [s].[Id], [s].[ConnectionId], [s].[CreatedAt], [s].[StrategyDefinitionId], [s].[StrategyExternalId]
+      FROM [StrategyMappings] AS [s]
+      WHERE [s].[ConnectionId] = @__connectionId_0 AND [s].[StrategyExternalId] = @__strategyExternalId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [s].[Id], [s].[CreatedAt], [s].[Description], [s].[Name], [s].[Status], [s].[TargetReturn], [s].[UpdatedAt]
+, [s].[TypeCategory], [s].[TypeSubType]
+      FROM [Strategies] AS [s]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__externalId_0='?' (Size = 100)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [i].[Id], [i].[ClosePrice], [i].[CloseTime], [i].[Comment], [i].[Commission], [i].[ConnectionId], [i
+].[ExternalId], [i].[ImportedAt], [i].[OpenPrice], [i].[OpenTime], [i].[PortfolioId], [i].[Profit], [i].[Side], [i].[Sto
+pLoss], [i].[StrategyId], [i].[Swap], [i].[Symbol], [i].[TakeProfit], [i].[Volume]
+      FROM [ImportedTrades] AS [i]
+      WHERE [i].[ExternalId] = @__externalId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__connectionId_0='?' (DbType = Guid), @__strategyExternalId_1='?' (Size = 1
+00)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [s].[Id], [s].[ConnectionId], [s].[CreatedAt], [s].[StrategyDefinitionId], [s].[StrategyExternalId]
+      FROM [StrategyMappings] AS [s]
+      WHERE [s].[ConnectionId] = @__connectionId_0 AND [s].[StrategyExternalId] = @__strategyExternalId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [s].[Id], [s].[CreatedAt], [s].[Description], [s].[Name], [s].[Status], [s].[TargetReturn], [s].[UpdatedAt]
+, [s].[TypeCategory], [s].[TypeSubType]
+      FROM [Strategies] AS [s]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__externalId_0='?' (Size = 100)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [i].[Id], [i].[ClosePrice], [i].[CloseTime], [i].[Comment], [i].[Commission], [i].[ConnectionId], [i
+].[ExternalId], [i].[ImportedAt], [i].[OpenPrice], [i].[OpenTime], [i].[PortfolioId], [i].[Profit], [i].[Side], [i].[Sto
+pLoss], [i].[StrategyId], [i].[Swap], [i].[Symbol], [i].[TakeProfit], [i].[Volume]
+      FROM [ImportedTrades] AS [i]
+      WHERE [i].[ExternalId] = @__externalId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__connectionId_0='?' (DbType = Guid), @__strategyExternalId_1='?' (Size = 1
+00)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [s].[Id], [s].[ConnectionId], [s].[CreatedAt], [s].[StrategyDefinitionId], [s].[StrategyExternalId]
+      FROM [StrategyMappings] AS [s]
+      WHERE [s].[ConnectionId] = @__connectionId_0 AND [s].[StrategyExternalId] = @__strategyExternalId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [s].[Id], [s].[CreatedAt], [s].[Description], [s].[Name], [s].[Status], [s].[TargetReturn], [s].[UpdatedAt]
+, [s].[TypeCategory], [s].[TypeSubType]
+      FROM [Strategies] AS [s]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__externalId_0='?' (Size = 100)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [i].[Id], [i].[ClosePrice], [i].[CloseTime], [i].[Comment], [i].[Commission], [i].[ConnectionId], [i
+].[ExternalId], [i].[ImportedAt], [i].[OpenPrice], [i].[OpenTime], [i].[PortfolioId], [i].[Profit], [i].[Side], [i].[Sto
+pLoss], [i].[StrategyId], [i].[Swap], [i].[Symbol], [i].[TakeProfit], [i].[Volume]
+      FROM [ImportedTrades] AS [i]
+      WHERE [i].[ExternalId] = @__externalId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__connectionId_0='?' (DbType = Guid), @__strategyExternalId_1='?' (Size = 1
+00)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [s].[Id], [s].[ConnectionId], [s].[CreatedAt], [s].[StrategyDefinitionId], [s].[StrategyExternalId]
+      FROM [StrategyMappings] AS [s]
+      WHERE [s].[ConnectionId] = @__connectionId_0 AND [s].[StrategyExternalId] = @__strategyExternalId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [s].[Id], [s].[CreatedAt], [s].[Description], [s].[Name], [s].[Status], [s].[TargetReturn], [s].[UpdatedAt]
+, [s].[TypeCategory], [s].[TypeSubType]
+      FROM [Strategies] AS [s]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__externalId_0='?' (Size = 100)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [i].[Id], [i].[ClosePrice], [i].[CloseTime], [i].[Comment], [i].[Commission], [i].[ConnectionId], [i
+].[ExternalId], [i].[ImportedAt], [i].[OpenPrice], [i].[OpenTime], [i].[PortfolioId], [i].[Profit], [i].[Side], [i].[Sto
+pLoss], [i].[StrategyId], [i].[Swap], [i].[Symbol], [i].[TakeProfit], [i].[Volume]
+      FROM [ImportedTrades] AS [i]
+      WHERE [i].[ExternalId] = @__externalId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__connectionId_0='?' (DbType = Guid), @__strategyExternalId_1='?' (Size = 1
+00)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [s].[Id], [s].[ConnectionId], [s].[CreatedAt], [s].[StrategyDefinitionId], [s].[StrategyExternalId]
+      FROM [StrategyMappings] AS [s]
+      WHERE [s].[ConnectionId] = @__connectionId_0 AND [s].[StrategyExternalId] = @__strategyExternalId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [s].[Id], [s].[CreatedAt], [s].[Description], [s].[Name], [s].[Status], [s].[TargetReturn], [s].[UpdatedAt]
+, [s].[TypeCategory], [s].[TypeSubType]
+      FROM [Strategies] AS [s]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__externalId_0='?' (Size = 100)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [i].[Id], [i].[ClosePrice], [i].[CloseTime], [i].[Comment], [i].[Commission], [i].[ConnectionId], [i
+].[ExternalId], [i].[ImportedAt], [i].[OpenPrice], [i].[OpenTime], [i].[PortfolioId], [i].[Profit], [i].[Side], [i].[Sto
+pLoss], [i].[StrategyId], [i].[Swap], [i].[Symbol], [i].[TakeProfit], [i].[Volume]
+      FROM [ImportedTrades] AS [i]
+      WHERE [i].[ExternalId] = @__externalId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__connectionId_0='?' (DbType = Guid), @__strategyExternalId_1='?' (Size = 1
+00)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [s].[Id], [s].[ConnectionId], [s].[CreatedAt], [s].[StrategyDefinitionId], [s].[StrategyExternalId]
+      FROM [StrategyMappings] AS [s]
+      WHERE [s].[ConnectionId] = @__connectionId_0 AND [s].[StrategyExternalId] = @__strategyExternalId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [s].[Id], [s].[CreatedAt], [s].[Description], [s].[Name], [s].[Status], [s].[TargetReturn], [s].[UpdatedAt]
+, [s].[TypeCategory], [s].[TypeSubType]
+      FROM [Strategies] AS [s]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__externalId_0='?' (Size = 100)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [i].[Id], [i].[ClosePrice], [i].[CloseTime], [i].[Comment], [i].[Commission], [i].[ConnectionId], [i
+].[ExternalId], [i].[ImportedAt], [i].[OpenPrice], [i].[OpenTime], [i].[PortfolioId], [i].[Profit], [i].[Side], [i].[Sto
+pLoss], [i].[StrategyId], [i].[Swap], [i].[Symbol], [i].[TakeProfit], [i].[Volume]
+      FROM [ImportedTrades] AS [i]
+      WHERE [i].[ExternalId] = @__externalId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__connectionId_0='?' (DbType = Guid), @__strategyExternalId_1='?' (Size = 1
+00)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [s].[Id], [s].[ConnectionId], [s].[CreatedAt], [s].[StrategyDefinitionId], [s].[StrategyExternalId]
+      FROM [StrategyMappings] AS [s]
+      WHERE [s].[ConnectionId] = @__connectionId_0 AND [s].[StrategyExternalId] = @__strategyExternalId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [s].[Id], [s].[CreatedAt], [s].[Description], [s].[Name], [s].[Status], [s].[TargetReturn], [s].[UpdatedAt]
+, [s].[TypeCategory], [s].[TypeSubType]
+      FROM [Strategies] AS [s]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__externalId_0='?' (Size = 100)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [i].[Id], [i].[ClosePrice], [i].[CloseTime], [i].[Comment], [i].[Commission], [i].[ConnectionId], [i
+].[ExternalId], [i].[ImportedAt], [i].[OpenPrice], [i].[OpenTime], [i].[PortfolioId], [i].[Profit], [i].[Side], [i].[Sto
+pLoss], [i].[StrategyId], [i].[Swap], [i].[Symbol], [i].[TakeProfit], [i].[Volume]
+      FROM [ImportedTrades] AS [i]
+      WHERE [i].[ExternalId] = @__externalId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__connectionId_0='?' (DbType = Guid), @__strategyExternalId_1='?' (Size = 1
+00)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [s].[Id], [s].[ConnectionId], [s].[CreatedAt], [s].[StrategyDefinitionId], [s].[StrategyExternalId]
+      FROM [StrategyMappings] AS [s]
+      WHERE [s].[ConnectionId] = @__connectionId_0 AND [s].[StrategyExternalId] = @__strategyExternalId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [s].[Id], [s].[CreatedAt], [s].[Description], [s].[Name], [s].[Status], [s].[TargetReturn], [s].[UpdatedAt]
+, [s].[TypeCategory], [s].[TypeSubType]
+      FROM [Strategies] AS [s]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__externalId_0='?' (Size = 100)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [i].[Id], [i].[ClosePrice], [i].[CloseTime], [i].[Comment], [i].[Commission], [i].[ConnectionId], [i
+].[ExternalId], [i].[ImportedAt], [i].[OpenPrice], [i].[OpenTime], [i].[PortfolioId], [i].[Profit], [i].[Side], [i].[Sto
+pLoss], [i].[StrategyId], [i].[Swap], [i].[Symbol], [i].[TakeProfit], [i].[Volume]
+      FROM [ImportedTrades] AS [i]
+      WHERE [i].[ExternalId] = @__externalId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__connectionId_0='?' (DbType = Guid), @__strategyExternalId_1='?' (Size = 1
+00)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [s].[Id], [s].[ConnectionId], [s].[CreatedAt], [s].[StrategyDefinitionId], [s].[StrategyExternalId]
+      FROM [StrategyMappings] AS [s]
+      WHERE [s].[ConnectionId] = @__connectionId_0 AND [s].[StrategyExternalId] = @__strategyExternalId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [s].[Id], [s].[CreatedAt], [s].[Description], [s].[Name], [s].[Status], [s].[TargetReturn], [s].[UpdatedAt]
+, [s].[TypeCategory], [s].[TypeSubType]
+      FROM [Strategies] AS [s]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__externalId_0='?' (Size = 100)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [i].[Id], [i].[ClosePrice], [i].[CloseTime], [i].[Comment], [i].[Commission], [i].[ConnectionId], [i
+].[ExternalId], [i].[ImportedAt], [i].[OpenPrice], [i].[OpenTime], [i].[PortfolioId], [i].[Profit], [i].[Side], [i].[Sto
+pLoss], [i].[StrategyId], [i].[Swap], [i].[Symbol], [i].[TakeProfit], [i].[Volume]
+      FROM [ImportedTrades] AS [i]
+      WHERE [i].[ExternalId] = @__externalId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__connectionId_0='?' (DbType = Guid), @__strategyExternalId_1='?' (Size = 1
+00)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [s].[Id], [s].[ConnectionId], [s].[CreatedAt], [s].[StrategyDefinitionId], [s].[StrategyExternalId]
+      FROM [StrategyMappings] AS [s]
+      WHERE [s].[ConnectionId] = @__connectionId_0 AND [s].[StrategyExternalId] = @__strategyExternalId_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [s].[Id], [s].[CreatedAt], [s].[Description], [s].[Name], [s].[Status], [s].[TargetReturn], [s].[UpdatedAt]
+, [s].[TypeCategory], [s].[TypeSubType]
+      FROM [Strategies] AS [s]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[@p18='?' (DbType = Guid), @p0='?' (Precision = 18) (Scale = 2) (DbType = Dec
+imal), @p1='?' (DbType = DateTime2), @p2='?' (Size = 500), @p3='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p4=
+'?' (DbType = Guid), @p5='?' (Size = 100), @p6='?' (DbType = DateTime2), @p7='?' (Precision = 18) (Scale = 2) (DbType =
+Decimal), @p8='?' (DbType = DateTime2), @p9='?' (DbType = Guid), @p10='?' (Precision = 18) (Scale = 2) (DbType = Decimal
+), @p11='?' (Size = 10), @p12='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p13='?' (DbType = Guid), @p14='?' (P
+recision = 18) (Scale = 2) (DbType = Decimal), @p15='?' (Size = 20), @p16='?' (Precision = 18) (Scale = 2) (DbType = Dec
+imal), @p17='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p37='?' (DbType = Guid), @p19='?' (Precision = 18) (Sc
+ale = 2) (DbType = Decimal), @p20='?' (DbType = DateTime2), @p21='?' (Size = 500), @p22='?' (Precision = 18) (Scale = 2)
+ (DbType = Decimal), @p23='?' (DbType = Guid), @p24='?' (Size = 100), @p25='?' (DbType = DateTime2), @p26='?' (Precision
+ = 18) (Scale = 2) (DbType = Decimal), @p27='?' (DbType = DateTime2), @p28='?' (DbType = Guid), @p29='?' (Precision = 18
+) (Scale = 2) (DbType = Decimal), @p30='?' (Size = 10), @p31='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p32='
+?' (DbType = Guid), @p33='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p34='?' (Size = 20), @p35='?' (Precision
+= 18) (Scale = 2) (DbType = Decimal), @p36='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p56='?' (DbType = Guid)
+, @p38='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p39='?' (DbType = DateTime2), @p40='?' (Size = 500), @p41='
+?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p42='?' (DbType = Guid), @p43='?' (Size = 100), @p44='?' (DbType =
+DateTime2), @p45='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p46='?' (DbType = DateTime2), @p47='?' (DbType =
+Guid), @p48='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p49='?' (Size = 10), @p50='?' (Precision = 18) (Scale
+= 2) (DbType = Decimal), @p51='?' (DbType = Guid), @p52='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p53='?' (S
+ize = 20), @p54='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p55='?' (Precision = 18) (Scale = 2) (DbType = Dec
+imal), @p75='?' (DbType = Guid), @p57='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p58='?' (DbType = DateTime2)
+, @p59='?' (Size = 500), @p60='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p61='?' (DbType = Guid), @p62='?' (S
+ize = 100), @p63='?' (DbType = DateTime2), @p64='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p65='?' (DbType =
+DateTime2), @p66='?' (DbType = Guid), @p67='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p68='?' (Size = 10), @p
+69='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p70='?' (DbType = Guid), @p71='?' (Precision = 18) (Scale = 2)
+(DbType = Decimal), @p72='?' (Size = 20), @p73='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p74='?' (Precision
+= 18) (Scale = 2) (DbType = Decimal), @p94='?' (DbType = Guid), @p76='?' (Precision = 18) (Scale = 2) (DbType = Decimal)
+, @p77='?' (DbType = DateTime2), @p78='?' (Size = 500), @p79='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p80='
+?' (DbType = Guid), @p81='?' (Size = 100), @p82='?' (DbType = DateTime2), @p83='?' (Precision = 18) (Scale = 2) (DbType
+= Decimal), @p84='?' (DbType = DateTime2), @p85='?' (DbType = Guid), @p86='?' (Precision = 18) (Scale = 2) (DbType = Dec
+imal), @p87='?' (Size = 10), @p88='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p89='?' (DbType = Guid), @p90='?
+' (Precision = 18) (Scale = 2) (DbType = Decimal), @p91='?' (Size = 20), @p92='?' (Precision = 18) (Scale = 2) (DbType =
+ Decimal), @p93='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p113='?' (DbType = Guid), @p95='?' (Precision = 18
+) (Scale = 2) (DbType = Decimal), @p96='?' (DbType = DateTime2), @p97='?' (Size = 500), @p98='?' (Precision = 18) (Scale
+ = 2) (DbType = Decimal), @p99='?' (DbType = Guid), @p100='?' (Size = 100), @p101='?' (DbType = DateTime2), @p102='?' (P
+recision = 18) (Scale = 2) (DbType = Decimal), @p103='?' (DbType = DateTime2), @p104='?' (DbType = Guid), @p105='?' (Pre
+cision = 18) (Scale = 2) (DbType = Decimal), @p106='?' (Size = 10), @p107='?' (Precision = 18) (Scale = 2) (DbType = Dec
+imal), @p108='?' (DbType = Guid), @p109='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p110='?' (Size = 20), @p11
+1='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p112='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p132=
+'?' (DbType = Guid), @p114='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p115='?' (DbType = DateTime2), @p116='?
+' (Size = 500), @p117='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p118='?' (DbType = Guid), @p119='?' (Size =
+100), @p120='?' (DbType = DateTime2), @p121='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p122='?' (DbType = Dat
+eTime2), @p123='?' (DbType = Guid), @p124='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p125='?' (Size = 10), @p
+126='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p127='?' (DbType = Guid), @p128='?' (Precision = 18) (Scale =
+2) (DbType = Decimal), @p129='?' (Size = 20), @p130='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p131='?' (Prec
+ision = 18) (Scale = 2) (DbType = Decimal), @p151='?' (DbType = Guid), @p133='?' (Precision = 18) (Scale = 2) (DbType =
+Decimal), @p134='?' (DbType = DateTime2), @p135='?' (Size = 500), @p136='?' (Precision = 18) (Scale = 2) (DbType = Decim
+al), @p137='?' (DbType = Guid), @p138='?' (Size = 100), @p139='?' (DbType = DateTime2), @p140='?' (Precision = 18) (Scal
+e = 2) (DbType = Decimal), @p141='?' (DbType = DateTime2), @p142='?' (DbType = Guid), @p143='?' (Precision = 18) (Scale
+= 2) (DbType = Decimal), @p144='?' (Size = 10), @p145='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p146='?' (Db
+Type = Guid), @p147='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p148='?' (Size = 20), @p149='?' (Precision = 1
+8) (Scale = 2) (DbType = Decimal), @p150='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p170='?' (DbType = Guid),
+ @p152='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p153='?' (DbType = DateTime2), @p154='?' (Size = 500), @p15
+5='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p156='?' (DbType = Guid), @p157='?' (Size = 100), @p158='?' (DbT
+ype = DateTime2), @p159='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p160='?' (DbType = DateTime2), @p161='?' (
+DbType = Guid), @p162='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p163='?' (Size = 10), @p164='?' (Precision =
+ 18) (Scale = 2) (DbType = Decimal), @p165='?' (DbType = Guid), @p166='?' (Precision = 18) (Scale = 2) (DbType = Decimal
+), @p167='?' (Size = 20), @p168='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p169='?' (Precision = 18) (Scale =
+ 2) (DbType = Decimal), @p171='?' (DbType = Guid), @p172='?' (DbType = DateTime2), @p173='?' (Size = 1000), @p174='?' (S
+ize = 200), @p175='?' (Size = 50), @p176='?' (Precision = 18) (Scale = 6) (DbType = Decimal), @p177='?' (DbType = DateTi
+me2), @p178='?' (Size = 50), @p179='?' (Size = 100), @p180='?' (DbType = Guid), @p181='?' (DbType = Guid), @p182='?' (Db
+Type = DateTime2), @p183='?' (DbType = Guid), @p184='?' (Size = 100), @p185='?' (DbType = Guid), @p186='?' (DbType = Gui
+d), @p187='?' (DbType = DateTime2), @p188='?' (DbType = Guid), @p189='?' (Size = 100), @p190='?' (DbType = Guid), @p191=
+'?' (DbType = Guid), @p192='?' (DbType = DateTime2), @p193='?' (DbType = Guid), @p194='?' (Size = 100), @p195='?' (DbTyp
+e = Guid), @p196='?' (DbType = Guid), @p197='?' (DbType = DateTime2), @p198='?' (DbType = Guid), @p199='?' (Size = 100),
+ @p200='?' (DbType = Guid), @p201='?' (DbType = Guid), @p202='?' (DbType = DateTime2), @p203='?' (DbType = Guid), @p204=
+'?' (Size = 100), @p205='?' (DbType = Guid), @p206='?' (DbType = Guid), @p207='?' (DbType = DateTime2), @p208='?' (DbTyp
+e = Guid), @p209='?' (Size = 100), @p210='?' (DbType = Guid), @p211='?' (DbType = Guid), @p212='?' (DbType = DateTime2),
+ @p213='?' (DbType = Guid), @p214='?' (Size = 100), @p215='?' (DbType = Guid), @p216='?' (DbType = Guid), @p217='?' (DbT
+ype = DateTime2), @p218='?' (DbType = Guid), @p219='?' (Size = 100), @p220='?' (DbType = Guid), @p221='?' (DbType = Guid
+), @p222='?' (DbType = DateTime2), @p223='?' (DbType = Guid), @p224='?' (Size = 100)], CommandType='Text', CommandTimeou
+t='30']
+      SET NOCOUNT ON;
+      UPDATE [ImportedTrades] SET [ClosePrice] = @p0, [CloseTime] = @p1, [Comment] = @p2, [Commission] = @p3, [Connectio
+nId] = @p4, [ExternalId] = @p5, [ImportedAt] = @p6, [OpenPrice] = @p7, [OpenTime] = @p8, [PortfolioId] = @p9, [Profit] =
+ @p10, [Side] = @p11, [StopLoss] = @p12, [StrategyId] = @p13, [Swap] = @p14, [Symbol] = @p15, [TakeProfit] = @p16, [Volu
+me] = @p17
+      OUTPUT 1
+      WHERE [Id] = @p18;
+      UPDATE [ImportedTrades] SET [ClosePrice] = @p19, [CloseTime] = @p20, [Comment] = @p21, [Commission] = @p22, [Conne
+ctionId] = @p23, [ExternalId] = @p24, [ImportedAt] = @p25, [OpenPrice] = @p26, [OpenTime] = @p27, [PortfolioId] = @p28,
+[Profit] = @p29, [Side] = @p30, [StopLoss] = @p31, [StrategyId] = @p32, [Swap] = @p33, [Symbol] = @p34, [TakeProfit] = @
+p35, [Volume] = @p36
+      OUTPUT 1
+      WHERE [Id] = @p37;
+      UPDATE [ImportedTrades] SET [ClosePrice] = @p38, [CloseTime] = @p39, [Comment] = @p40, [Commission] = @p41, [Conne
+ctionId] = @p42, [ExternalId] = @p43, [ImportedAt] = @p44, [OpenPrice] = @p45, [OpenTime] = @p46, [PortfolioId] = @p47,
+[Profit] = @p48, [Side] = @p49, [StopLoss] = @p50, [StrategyId] = @p51, [Swap] = @p52, [Symbol] = @p53, [TakeProfit] = @
+p54, [Volume] = @p55
+      OUTPUT 1
+      WHERE [Id] = @p56;
+      UPDATE [ImportedTrades] SET [ClosePrice] = @p57, [CloseTime] = @p58, [Comment] = @p59, [Commission] = @p60, [Conne
+ctionId] = @p61, [ExternalId] = @p62, [ImportedAt] = @p63, [OpenPrice] = @p64, [OpenTime] = @p65, [PortfolioId] = @p66,
+[Profit] = @p67, [Side] = @p68, [StopLoss] = @p69, [StrategyId] = @p70, [Swap] = @p71, [Symbol] = @p72, [TakeProfit] = @
+p73, [Volume] = @p74
+      OUTPUT 1
+      WHERE [Id] = @p75;
+      UPDATE [ImportedTrades] SET [ClosePrice] = @p76, [CloseTime] = @p77, [Comment] = @p78, [Commission] = @p79, [Conne
+ctionId] = @p80, [ExternalId] = @p81, [ImportedAt] = @p82, [OpenPrice] = @p83, [OpenTime] = @p84, [PortfolioId] = @p85,
+[Profit] = @p86, [Side] = @p87, [StopLoss] = @p88, [StrategyId] = @p89, [Swap] = @p90, [Symbol] = @p91, [TakeProfit] = @
+p92, [Volume] = @p93
+      OUTPUT 1
+      WHERE [Id] = @p94;
+      UPDATE [ImportedTrades] SET [ClosePrice] = @p95, [CloseTime] = @p96, [Comment] = @p97, [Commission] = @p98, [Conne
+ctionId] = @p99, [ExternalId] = @p100, [ImportedAt] = @p101, [OpenPrice] = @p102, [OpenTime] = @p103, [PortfolioId] = @p
+104, [Profit] = @p105, [Side] = @p106, [StopLoss] = @p107, [StrategyId] = @p108, [Swap] = @p109, [Symbol] = @p110, [Take
+Profit] = @p111, [Volume] = @p112
+      OUTPUT 1
+      WHERE [Id] = @p113;
+      UPDATE [ImportedTrades] SET [ClosePrice] = @p114, [CloseTime] = @p115, [Comment] = @p116, [Commission] = @p117, [C
+onnectionId] = @p118, [ExternalId] = @p119, [ImportedAt] = @p120, [OpenPrice] = @p121, [OpenTime] = @p122, [PortfolioId]
+ = @p123, [Profit] = @p124, [Side] = @p125, [StopLoss] = @p126, [StrategyId] = @p127, [Swap] = @p128, [Symbol] = @p129,
+[TakeProfit] = @p130, [Volume] = @p131
+      OUTPUT 1
+      WHERE [Id] = @p132;
+      UPDATE [ImportedTrades] SET [ClosePrice] = @p133, [CloseTime] = @p134, [Comment] = @p135, [Commission] = @p136, [C
+onnectionId] = @p137, [ExternalId] = @p138, [ImportedAt] = @p139, [OpenPrice] = @p140, [OpenTime] = @p141, [PortfolioId]
+ = @p142, [Profit] = @p143, [Side] = @p144, [StopLoss] = @p145, [StrategyId] = @p146, [Swap] = @p147, [Symbol] = @p148,
+[TakeProfit] = @p149, [Volume] = @p150
+      OUTPUT 1
+      WHERE [Id] = @p151;
+      UPDATE [ImportedTrades] SET [ClosePrice] = @p152, [CloseTime] = @p153, [Comment] = @p154, [Commission] = @p155, [C
+onnectionId] = @p156, [ExternalId] = @p157, [ImportedAt] = @p158, [OpenPrice] = @p159, [OpenTime] = @p160, [PortfolioId]
+ = @p161, [Profit] = @p162, [Side] = @p163, [StopLoss] = @p164, [StrategyId] = @p165, [Swap] = @p166, [Symbol] = @p167,
+[TakeProfit] = @p168, [Volume] = @p169
+      OUTPUT 1
+      WHERE [Id] = @p170;
+      INSERT INTO [Strategies] ([Id], [CreatedAt], [Description], [Name], [Status], [TargetReturn], [UpdatedAt], [TypeCa
+tegory], [TypeSubType])
+      VALUES (@p171, @p172, @p173, @p174, @p175, @p176, @p177, @p178, @p179);
+      INSERT INTO [StrategyMappings] ([Id], [ConnectionId], [CreatedAt], [StrategyDefinitionId], [StrategyExternalId])
+      VALUES (@p180, @p181, @p182, @p183, @p184),
+      (@p185, @p186, @p187, @p188, @p189),
+      (@p190, @p191, @p192, @p193, @p194),
+      (@p195, @p196, @p197, @p198, @p199),
+      (@p200, @p201, @p202, @p203, @p204),
+      (@p205, @p206, @p207, @p208, @p209),
+      (@p210, @p211, @p212, @p213, @p214),
+      (@p215, @p216, @p217, @p218, @p219),
+      (@p220, @p221, @p222, @p223, @p224);
+fail: Microsoft.EntityFrameworkCore.Update[10000]
+      An exception occurred in the database while saving changes for context type 'Certus.Infrastructure.Persistence.Cer
+tusDbContext'.
+      Microsoft.EntityFrameworkCore.DbUpdateException: An error occurred while saving the entity changes. See the inner
+exception for details.
+       ---> Microsoft.Data.SqlClient.SqlException (0x80131904): Cannot insert duplicate key row in object 'dbo.StrategyM
+appings' with unique index 'IX_StrategyMappings_ConnectionId_StrategyExternalId'. The duplicate key value is (2f78ce2f-a
+6b4-42c7-a6e7-4c6a5e89521b, 0).
+         at Microsoft.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wra
+pCloseInAction)
+         at Microsoft.Data.SqlClient.SqlInternalConnection.OnError(SqlException exception, Boolean breakConnection, Acti
+on`1 wrapCloseInAction)
+         at Microsoft.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHas
+ConnectionLock, Boolean asyncClose)
+         at Microsoft.Data.SqlClient.TdsParser.TryRun(RunBehavior runBehavior, SqlCommand cmdHandler, SqlDataReader data
+Stream, BulkCopySimpleResultSet bulkCopyHandler, TdsParserStateObject stateObj, Boolean& dataReady)
+         at Microsoft.Data.SqlClient.SqlDataReader.TryHasMoreRows(Boolean& moreRows)
+         at Microsoft.Data.SqlClient.SqlDataReader.TryHasMoreResults(Boolean& moreResults)
+         at Microsoft.Data.SqlClient.SqlDataReader.TryNextResult(Boolean& more)
+         at Microsoft.Data.SqlClient.SqlDataReader.NextResultAsyncExecute(Task task, Object state)
+         at Microsoft.Data.SqlClient.SqlDataReader.InvokeAsyncCall[T](SqlDataReaderBaseAsyncCallContext`1 context)
+      --- End of stack trace from previous location ---
+         at Microsoft.EntityFrameworkCore.Update.AffectedCountModificationCommandBatch.ConsumeAsync(RelationalDataReader
+ reader, CancellationToken cancellationToken)
+      ClientConnectionId:29e9b969-0abe-4406-9121-187925307b4d
+      Error Number:2601,State:1,Class:14
+         --- End of inner exception stack trace ---
+         at Microsoft.EntityFrameworkCore.Update.AffectedCountModificationCommandBatch.ConsumeAsync(RelationalDataReader
+ reader, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ExecuteAsync(IRelationalConnection conne
+ction, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ExecuteAsync(IRelationalConnection conne
+ction, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.SqlServer.Update.Internal.SqlServerModificationCommandBatch.ExecuteAsync(IRela
+tionalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRela
+tionalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRela
+tionalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRela
+tionalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalDatabase.SaveChangesAsync(IList`1 entries, CancellationToken
+ cancellationToken)
+         at Microsoft.EntityFrameworkCore.ChangeTracking.Internal.StateManager.SaveChangesAsync(IList`1 entriesToSave, C
+ancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.ChangeTracking.Internal.StateManager.SaveChangesAsync(StateManager stateManage
+r, Boolean acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.SqlServer.Storage.Internal.SqlServerExecutionStrategy.ExecuteAsync[TState,TRes
+ult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.DbContext.SaveChangesAsync(Boolean acceptAllChangesOnSuccess, CancellationToke
+n cancellationToken)
+      Microsoft.EntityFrameworkCore.DbUpdateException: An error occurred while saving the entity changes. See the inner
+exception for details.
+       ---> Microsoft.Data.SqlClient.SqlException (0x80131904): Cannot insert duplicate key row in object 'dbo.StrategyM
+appings' with unique index 'IX_StrategyMappings_ConnectionId_StrategyExternalId'. The duplicate key value is (2f78ce2f-a
+6b4-42c7-a6e7-4c6a5e89521b, 0).
+         at Microsoft.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wra
+pCloseInAction)
+         at Microsoft.Data.SqlClient.SqlInternalConnection.OnError(SqlException exception, Boolean breakConnection, Acti
+on`1 wrapCloseInAction)
+         at Microsoft.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHas
+ConnectionLock, Boolean asyncClose)
+         at Microsoft.Data.SqlClient.TdsParser.TryRun(RunBehavior runBehavior, SqlCommand cmdHandler, SqlDataReader data
+Stream, BulkCopySimpleResultSet bulkCopyHandler, TdsParserStateObject stateObj, Boolean& dataReady)
+         at Microsoft.Data.SqlClient.SqlDataReader.TryHasMoreRows(Boolean& moreRows)
+         at Microsoft.Data.SqlClient.SqlDataReader.TryHasMoreResults(Boolean& moreResults)
+         at Microsoft.Data.SqlClient.SqlDataReader.TryNextResult(Boolean& more)
+         at Microsoft.Data.SqlClient.SqlDataReader.NextResultAsyncExecute(Task task, Object state)
+         at Microsoft.Data.SqlClient.SqlDataReader.InvokeAsyncCall[T](SqlDataReaderBaseAsyncCallContext`1 context)
+      --- End of stack trace from previous location ---
+         at Microsoft.EntityFrameworkCore.Update.AffectedCountModificationCommandBatch.ConsumeAsync(RelationalDataReader
+ reader, CancellationToken cancellationToken)
+      ClientConnectionId:29e9b969-0abe-4406-9121-187925307b4d
+      Error Number:2601,State:1,Class:14
+         --- End of inner exception stack trace ---
+         at Microsoft.EntityFrameworkCore.Update.AffectedCountModificationCommandBatch.ConsumeAsync(RelationalDataReader
+ reader, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ExecuteAsync(IRelationalConnection conne
+ction, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ExecuteAsync(IRelationalConnection conne
+ction, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.SqlServer.Update.Internal.SqlServerModificationCommandBatch.ExecuteAsync(IRela
+tionalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRela
+tionalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRela
+tionalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRela
+tionalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalDatabase.SaveChangesAsync(IList`1 entries, CancellationToken
+ cancellationToken)
+         at Microsoft.EntityFrameworkCore.ChangeTracking.Internal.StateManager.SaveChangesAsync(IList`1 entriesToSave, C
+ancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.ChangeTracking.Internal.StateManager.SaveChangesAsync(StateManager stateManage
+r, Boolean acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.SqlServer.Storage.Internal.SqlServerExecutionStrategy.ExecuteAsync[TState,TRes
+ult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.DbContext.SaveChangesAsync(Boolean acceptAllChangesOnSuccess, CancellationToke
+n cancellationToken)
+[PlatformService] Auto-import error: An error occurred while saving the entity changes. See the inner exception for deta
+ils.
+[ConnectionWatcherService] Watcher set up for connection 2f78ce2f-a6b4-42c7-a6e7-4c6a5e89521b
+info: Certus.Infrastructure.Platform.ConnectionWatcherService[0]
+      Restored file watcher for connection 2f78ce2f-a6b4-42c7-a6e7-4c6a5e89521b (MetaTrader4)
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+
+D:\Certus\src\Certus.Dashboard>
