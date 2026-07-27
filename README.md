@@ -120,30 +120,26 @@ Early strategy development may use existing tools such as StrategyQuant X while 
 ---
 
 ## Architecture Direction
-
+``` 
 The long-term architecture follows an AI-native collaborative model:
 
              Certus
-
                 |
     +-----------+-----------+
     |           |           |
-Research Experiment Knowledge
-Agents Engine Base
+Research    Experiment  Knowledge
+Agents        Engine       Base
                 |
                 v
-
-      Strategy Lifecycle
+        Strategy Lifecycle
                 |
                 v
-
-         Risk Validation
+          Risk Validation
                 |
                 v
-
-         Deployment
+            Deployment
 		 
-
+``` 
 ---
 
 ## Non-Goals
