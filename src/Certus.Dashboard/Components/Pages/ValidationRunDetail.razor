@@ -1,0 +1,176 @@
+@page "/validation/runs/{RunId}"
+@using Validator.Application.Abstractions
+@using Validator.Application.Web
+@inject IValidationWebService ValidationService
+
+<PageTitle>Validation Run @RunId</PageTitle>
+
+<h1>Validation Run</h1>
+
+@if (IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (UnavailableReason is not null)
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-4">@UnavailableReason</MudAlert>
+}
+else if (Status is WebRunStatus.Pending or WebRunStatus.Running)
+{
+    <MudAlert Severity="Severity.Info" Class="mb-4">
+        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+        The run is @Status.ToString().ToLowerInvariant(). This page reflects the durable run state and never triggers work.
+    </MudAlert>
+    <MudButton Variant="Variant.Outlined" OnClick="RefreshAsync">Refresh status</MudButton>
+}
+else if (View is not null && View.Status == WebRunStatus.Failed)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">
+        <MudText Typo="Typo.h6">Validation failed</MudText>
+        <MudText Typo="Typo.body2"><strong>@View.Diagnostic?.Code</strong> &mdash; @View.Diagnostic?.Reason</MudText>
+        <MudText Typo="Typo.caption">@View.Diagnostic?.Guidance</MudText>
+    </MudAlert>
+}
+else if (View is not null)
+{
+    var summary = View.Validation?.Summary;
+    var severity = View.Status == WebRunStatus.CompletedClean ? Severity.Success : Severity.Warning;
+    <MudAlert Severity="@severity" Class="mb-4">
+        @(View.Status == WebRunStatus.CompletedClean
+            ? "Validation complete: the dataset is clean."
+            : "Validation complete: findings detected.")
+    </MudAlert>
+
+    @if (summary is not null)
+    {
+        <MudPaper Class="pa-4 mb-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-2">Quality checks</MudText>
+            <MudSimpleTable Hover="true" Dense="true" Class="mt-2">
+                <thead>
+                    <tr><th>Check</th><th>Count</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Missing candles</td><td>@summary.MissingCandles</td></tr>
+                    <tr><td>Duplicate records</td><td>@summary.DuplicateRecords</td></tr>
+                    <tr><td>Invalid OHLC</td><td>@summary.InvalidOhlc</td></tr>
+                    <tr><td>Closed-market records</td><td>@summary.ClosedMarketRecords</td></tr>
+                    <tr><td>Time gaps</td><td>@summary.TimeGaps</td></tr>
+                    <tr><td>Malformed rows</td><td>@summary.MalformedRows</td></tr>
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    }
+
+    @if (View.Scoring is not null)
+    {
+        <MudPaper Class="pa-4 mb-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-2">Quality score</MudText>
+            <MudText Typo="Typo.body1">
+                Dataset average: <strong>@(View.Scoring.Score.Dataset.Average?.Format() ?? "unavailable")</strong> / 100
+            </MudText>
+            <MudSimpleTable Hover="true" Dense="true" Class="mt-2">
+                <thead>
+                    <tr><th>Dimension</th><th>State</th><th>Score</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var metric in View.Scoring.Score.Metrics)
+                    {
+                        <tr>
+                            <td>@metric.Category</td>
+                            <td>@metric.State</td>
+                            <td>@(metric.Score?.Format() ?? "-")</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    }
+
+    @if (View.AvailableExports.Count > 0)
+    {
+        <MudPaper Class="pa-4 mb-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-2">Download report</MudText>
+            @foreach (var representation in View.AvailableExports)
+            {
+                <MudButton Class="mr-2 mb-2" Variant="Variant.Outlined" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Download"
+                           OnClick="() => DownloadAsync(representation)">
+                    @representation
+                </MudButton>
+            }
+        </MudPaper>
+    }
+}
+
+@code
+{
+    [Parameter] public string RunId { get; set; } = string.Empty;
+
+    private bool IsLoading = true;
+    private string? UnavailableReason;
+    private WebRunStatus? Status;
+    private WebResultView? View;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+        IsLoading = false;
+    }
+
+    private async Task RefreshAsync()
+    {
+        WebRunId id;
+        try
+        {
+            id = WebRunId.Parse(RunId);
+        }
+        catch (Exception)
+        {
+            UnavailableReason = "The run id is not valid.";
+            return;
+        }
+
+        var status = await ValidationService.GetStatusAsync(id);
+        if (status is WebRunStatusResult.Unavailable unavailable)
+        {
+            UnavailableReason = unavailable.Reason;
+            Status = null;
+            View = null;
+            return;
+        }
+
+        Status = ((WebRunStatusResult.Known)status).Status;
+
+        if (Status is WebRunStatus.CompletedClean or WebRunStatus.CompletedWithFindings or WebRunStatus.Failed)
+        {
+            var result = await ValidationService.GetResultAsync(id);
+            if (result is WebResultRetrieval.Ready ready)
+            {
+                View = ready.View;
+            }
+            else if (result is WebResultRetrieval.Unavailable gone)
+            {
+                UnavailableReason = gone.Reason;
+            }
+        }
+    }
+
+    private async Task DownloadAsync(ReportRepresentation representation)
+    {
+        var id = WebRunId.Parse(RunId);
+        using var stream = new MemoryStream();
+        var export = await ValidationService.ExportAsync(id, representation, stream);
+        if (export is WebExportResult.Written)
+        {
+            // The boundary hands the caller typed data; the host is
+            // responsible for presentation and delivery.
+            stream.Position = 0;
+            using var reader = new StreamReader(stream);
+            var text = await reader.ReadToEndAsync();
+            await JS.InvokeVoidAsync("certus.downloadReport",
+                RunId, representation.ToString(), text);
+        }
+    }
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+}
