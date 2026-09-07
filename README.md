@@ -171,3 +171,14 @@ Certus does not aim to:
 🚧 Early Development
 
 Certus is currently being developed as an experimental AI-native quantitative research platform.
+
+## Data Validation
+
+Certus integrates the [financial-data-cleaner](https://github.com/MehdiDolati/financial-data-cleaner) validator so users can check OHLCV datasets directly from the dashboard.
+
+- **Validation page** (`/validation`): upload a CSV dataset, optionally pin the timeframe and request a quality score. Duplicate submissions deterministically join the existing run.
+- **Run detail page** (`/validation/runs/{id}`): the durable run status, the six quality-check counts, the optional score breakdown, and report downloads (concise text, detailed text, and v2 JSON) for terminal-success runs.
+- **Integration boundary**: consumed as NuGet packages from the validator's local feed (`nuget.config`, `validator-local` source). The boundary is transport-neutral; Certus wires it in `Program.cs` via `AddValidatorWebIntegration` with its durable storage root under `AppData/data-validation`.
+- **Parity**: the validator's parity test suite proves the web results match the CLI byte-for-byte on the substantive surfaces, so dashboard users see exactly what CLI users see.
+
+The validator boundary never publishes partial results: every run is Pending, Running, CompletedClean/CompletedWithFindings, or Failed with an actionable diagnostic.

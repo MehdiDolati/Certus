@@ -12,9 +12,14 @@
     <PackageReference Include="Plotly.Blazor" Version="5.*" />
   </ItemGroup>
 
+
   <ItemGroup>
     <ProjectReference Include="..\Certus.Application\Certus.Application.csproj" />
     <ProjectReference Include="..\Certus.Infrastructure\Certus.Infrastructure.csproj" />
   </ItemGroup>
 
+
+  <ItemGroup>
+    <PackageReference Include="Validator.Infrastructure" Version="1.0.0" />
+  </ItemGroup>
 </Project>

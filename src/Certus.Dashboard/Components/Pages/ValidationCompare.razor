@@ -1,0 +1,133 @@
+@page "/validation/compare"
+@using Validator.Application.Ingestion
+@using Validator.Application.Reporting
+@using Validator.Application.Web
+@using Validator.Domain.Calendars
+@inject IValidationWebService ValidationService
+@inject NavigationManager Navigation
+
+<PageTitle>Dataset Comparison</PageTitle>
+
+<h1>Dataset Comparison</h1>
+<p class="mud-typography mud-typography-body1 mud-text-secondary">
+    Compare a candidate OHLCV dataset against a named, previously established benchmark.
+    Matched timestamps, material discrepancies, and the benchmark-agreement score are
+    reported separately from the candidate's own quality score.
+</p>
+
+<MudPaper Class="pa-6 mb-4" Elevation="2">
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <InputFile OnChange="HandleFileChange" class="mud-input-input" />
+            <MudText Typo="Typo.caption" Class="mt-1">
+                @(SelectedFile is null ? "No file selected" : $"{SelectedFile.Name} ({SelectedFile.Size:N0} bytes)")
+            </MudText>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTextField T="string" @bind-Value="_benchmarkName" Label="Benchmark name" Required="true"
+                          HelperText="The name the benchmark was established under" />
+            <MudTextField T="string" @bind-Value="_instrument" Label="Instrument" Required="true"
+                          HelperText="Benchmark operations require an instrument identity" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       Disabled="@(SelectedFile is null || IsSubmitting || string.IsNullOrWhiteSpace(_benchmarkName) || string.IsNullOrWhiteSpace(_instrument))"
+                       OnClick="SubmitAsync">
+                @if (IsSubmitting)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <span>Comparing...</span>
+                }
+                else
+                {
+                    <span>Compare dataset</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (Rejection is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">
+        <MudText Typo="Typo.body2"><strong>@Rejection.Code</strong> &mdash; @Rejection.Reason</MudText>
+        <MudText Typo="Typo.caption">@Rejection.Guidance</MudText>
+    </MudAlert>
+}
+
+@if (UploadError is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">@UploadError</MudAlert>
+}
+
+@code
+{
+    private IBrowserFile? SelectedFile;
+    private string _benchmarkName = string.Empty;
+    private string _instrument = string.Empty;
+    private bool IsSubmitting;
+    private FatalDiagnostic? Rejection;
+    private string? UploadError;
+
+    private void HandleFileChange(InputFileChangeEventArgs e)
+    {
+        SelectedFile = e.File;
+        Rejection = null;
+        UploadError = null;
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (SelectedFile is null || IsSubmitting)
+        {
+            return;
+        }
+
+        // Duplicate-submission prevention (T068).
+        IsSubmitting = true;
+        Rejection = null;
+        UploadError = null;
+
+        try
+        {
+            const long maxUploadBytes = 64 * 1024 * 1024;
+            if (SelectedFile.Size > maxUploadBytes)
+            {
+                UploadError = $"The upload exceeds the {maxUploadBytes / (1024 * 1024)} MB limit. Split the dataset and retry.";
+                return;
+            }
+
+            await using var content = SelectedFile.OpenReadStream(maxAllowedSize: maxUploadBytes);
+            var options = new WebRunOptions(
+                Timeframe: null,
+                Market: MarketProfile.Forex,
+                CalendarReference: null,
+                Csv: new CsvInputOptions { HasHeader = true, Delimiter = "comma" },
+                ReportVersion: 2,
+                Score: true,
+                ScoreWeights: null,
+                Instrument: _instrument.Trim(),
+                BenchmarkName: _benchmarkName.Trim(),
+                ToleranceOverrides: null);
+
+            var submission = await ValidationService.SubmitAsync(new WebRunRequest(
+                WebRunOperation.Compare, SelectedFile.Name, content, options));
+
+            if (submission is WebRunSubmission.Accepted accepted)
+            {
+                Navigation.NavigateTo($"/validation/runs/{accepted.Id.Value}", forceLoad: false);
+                return;
+            }
+
+            Rejection = ((WebRunSubmission.Rejected)submission).Diagnostic;
+        }
+        catch (Exception exception)
+        {
+            UploadError = $"The upload could not be read: {exception.Message}";
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+}

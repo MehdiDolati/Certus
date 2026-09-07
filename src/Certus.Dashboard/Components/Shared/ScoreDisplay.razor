@@ -1,0 +1,49 @@
+@using Validator.Application.Scoring
+@using Validator.Application.Web
+
+@* The score display component (T053): the dataset average, band, scale, and
+   all six metric rows in canonical order - projected exactly as the scoring
+   pipeline computed them, never recomputed (FR-015, FR-018). *@
+@if (Section is null)
+{
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">No score was requested for this run.</MudText>
+}
+else
+{
+    var score = Section.Score;
+    <MudPaper Class="pa-4" Elevation="2">
+        <MudGrid Spacing="2" AlignItems="Center">
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.h4">
+                    @(score.Dataset.Average?.Format() ?? "n/a")<MudText Typo="Typo.caption" Class="ml-1">/ @score.Scale.Maximum</MudText>
+                </MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @score.Dataset.MetricsCovered of 6 dimensions scored (higher is better, @score.Scale.DecimalPlaces decimals)
+                </MudText>
+            </MudItem>
+            <MudItem xs="12" md="8">
+                <MudSimpleTable Hover="true" Dense="true">
+                    <thead>
+                        <tr><th>Dimension</th><th>State</th><th>Count</th><th>Score</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var metric in score.Metrics)
+                        {
+                            <tr>
+                                <td>@metric.Category</td>
+                                <td>@metric.State</td>
+                                <td>@metric.Count</td>
+                                <td>@(metric.Score?.Format() ?? (metric.Reason ?? "-"))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
+@code
+{
+    [Parameter] public WebScoringSection? Section { get; set; }
+}

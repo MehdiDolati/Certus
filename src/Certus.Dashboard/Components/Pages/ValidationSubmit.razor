@@ -1,0 +1,143 @@
+@page "/validation"
+@using Validator.Application.Ingestion
+@using Validator.Application.Reporting
+@using Validator.Application.Web
+@using Validator.Domain.Calendars
+@inject IValidationWebService ValidationService
+@inject NavigationManager Navigation
+
+<PageTitle>Data Validation</PageTitle>
+
+<h1>Data Validation</h1>
+<p class="mud-typography mud-typography-body1 mud-text-secondary">
+    Upload an OHLCV CSV dataset and the Certus-integrated validator checks missing candles,
+    duplicate records, invalid OHLC values, closed-market records, time gaps, and malformed rows.
+</p>
+
+<MudPaper Class="pa-6 mb-4" Elevation="2">
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <InputFile OnChange="HandleFileChange" class="mud-input-input" />
+            <MudButton HtmlTag="label" Variant="Variant.Text" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.UploadFile" Class="mt-2">
+                @(SelectedFile is null ? "No file selected" : SelectedFile.Name)
+            </MudButton>
+            @if (SelectedFile is not null)
+            {
+                <MudText Class="mt-1" Typo="Typo.caption">@($"{SelectedFile.Name} ({SelectedFile.Size:N0} bytes)")</MudText>
+            }
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudSelect T="string" @bind-Value="_selectedTimeframe" Label="Timeframe (optional)" Clearable="true"
+                       HelperText="Leave empty to infer from the data">
+                <MudSelectItem Value="@("D1")">D1 - Daily</MudSelectItem>
+                <MudSelectItem Value="@("H1")">H1 - Hourly</MudSelectItem>
+                <MudSelectItem Value="@("M30")">M30 - 30 minutes</MudSelectItem>
+                <MudSelectItem Value="@("M15")">M15 - 15 minutes</MudSelectItem>
+                <MudSelectItem Value="@("M5")">M5 - 5 minutes</MudSelectItem>
+                <MudSelectItem Value="@("M1")">M1 - 1 minute</MudSelectItem>
+            </MudSelect>
+            <MudCheckBox T="bool" @bind-Value="_score" Label="Compute quality score" Color="Color.Primary" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(SelectedFile is null || IsSubmitting)"
+                       OnClick="SubmitAsync">
+                @if (IsSubmitting)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <span>Validating...</span>
+                }
+                else
+                {
+                    <span>Validate dataset</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (Rejection is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">
+        <MudText Typo="Typo.body2"><strong>@Rejection.Code</strong> &mdash; @Rejection.Reason</MudText>
+        <MudText Typo="Typo.caption">@Rejection.Guidance</MudText>
+    </MudAlert>
+}
+
+@if (UploadError is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">@UploadError</MudAlert>
+}
+
+@code
+{
+    private IBrowserFile? SelectedFile;
+    private string? _selectedTimeframe;
+    private bool _score;
+    private bool IsSubmitting;
+    private FatalDiagnostic? Rejection;
+    private string? UploadError;
+
+    private void HandleFileChange(InputFileChangeEventArgs e)
+    {
+        SelectedFile = e.File;
+        Rejection = null;
+        UploadError = null;
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (SelectedFile is null || IsSubmitting)
+        {
+            return;
+        }
+
+        // Duplicate-submission prevention: the button is disabled while a
+        // submission is in flight and the handler re-checks the flag.
+        IsSubmitting = true;
+        Rejection = null;
+        UploadError = null;
+
+        try
+        {
+            const long maxUploadBytes = 64 * 1024 * 1024;
+            if (SelectedFile.Size > maxUploadBytes)
+            {
+                UploadError = $"The upload exceeds the {maxUploadBytes / (1024 * 1024)} MB limit. Split the dataset and retry.";
+                return;
+            }
+
+            await using var content = SelectedFile.OpenReadStream(maxAllowedSize: maxUploadBytes);
+            var options = new WebRunOptions(
+                Timeframe: string.IsNullOrWhiteSpace(_selectedTimeframe) ? null : _selectedTimeframe,
+                Market: MarketProfile.Forex,
+                CalendarReference: null,
+                Csv: new CsvInputOptions { HasHeader = true, Delimiter = "comma" },
+                ReportVersion: 2,
+                Score: _score,
+                ScoreWeights: null,
+                Instrument: null,
+                BenchmarkName: null,
+                ToleranceOverrides: null);
+
+            var submission = await ValidationService.SubmitAsync(new WebRunRequest(
+                WebRunOperation.Validate, SelectedFile.Name, content, options));
+
+            if (submission is WebRunSubmission.Accepted accepted)
+            {
+                Navigation.NavigateTo($"/validation/runs/{accepted.Id.Value}", forceLoad: false);
+                return;
+            }
+
+            Rejection = ((WebRunSubmission.Rejected)submission).Diagnostic;
+        }
+        catch (Exception exception)
+        {
+            UploadError = $"The upload could not be read: {exception.Message}";
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+}

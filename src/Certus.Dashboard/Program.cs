@@ -6,10 +6,19 @@ using Certus.Application.Platform;
 using Certus.Infrastructure;
 using Certus.Infrastructure.Persistence;
 using MudBlazor.Services;
+using Validator.Application.Web;
+using Validator.Infrastructure.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Data-validation integration (spec 006): the transport-neutral validator
+// boundary consumed as a local NuGet package, with its durable storage root
+// under the application's data folder (spec 006, task T035).
+var validatorStorageRoot = builder.Configuration["DataValidation:StorageRoot"]
+    ?? Path.Combine(builder.Environment.ContentRootPath, "AppData", "data-validation");
+builder.Services.AddValidatorWebIntegration(validatorStorageRoot);
 
 builder.Services.AddScoped<IPortfolioService, Certus.Application.Portfolios.PortfolioService>();
 builder.Services.AddScoped<IStrategyService, Certus.Application.Strategies.StrategyService>();
