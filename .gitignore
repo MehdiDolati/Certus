@@ -226,6 +226,10 @@ PublishScripts/
 *.nupkg
 # NuGet Symbol Packages
 *.snupkg
+# Except the vendored validator packages required for CI restore (Linux has no
+# access to the Windows-only financial-data-cleaner local feed).
+!vendor/validator-packages/*.nupkg
+!vendor/validator-packages/*.snupkg
 # The packages folder can be ignored because of Package Restore
 **/[Pp]ackages/*
 # except build/, which is used as an MSBuild target.
