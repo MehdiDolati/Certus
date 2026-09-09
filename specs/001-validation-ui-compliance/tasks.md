@@ -35,9 +35,9 @@ Single-project Blazor Server web application. All source changes are confined to
 
 **Purpose**: Test-project scaffolding and shared test infrastructure for the feature
 
-- [ ] T001 Create the ComponentTests folder structure for this feature: `tests/Certus.ComponentTests/Navigation/` and `tests/Certus.ComponentTests/Validation/` (per plan.md §Project Structure)
-- [ ] T002 [P] Verify `tests/Certus.ComponentTests/Certus.ComponentTests.csproj` references bUnit **1.35.x** (NOT 2.7.x), xUnit, FluentAssertions, and Moq; pin bUnit to `1.35.*` per AGENTS.md gotcha (MudBlazor 7 compatibility)
-- [ ] T003 [P] Create a reusable bUnit test helper in `tests/Certus.ComponentTests/Validation/ValidationTestContextExtensions.cs` that registers MudBlazor services (`Services.AddMudServices()`), sets `JSInterop.Mode = Loose`, renders a `MudPopoverProvider`, and exposes a `Mock<IValidationWebService>` builder — mirroring the existing pattern in `tests/Certus.ComponentTests/ValidationFlowTests.cs`
+- [X] T001 Create the ComponentTests folder structure for this feature: `tests/Certus.ComponentTests/Navigation/` and `tests/Certus.ComponentTests/Validation/` (per plan.md §Project Structure)
+- [X] T002 [P] Verify `tests/Certus.ComponentTests/Certus.ComponentTests.csproj` references bUnit **1.35.x** (NOT 2.7.x), xUnit, FluentAssertions, and Moq; pin bUnit to `1.35.*` per AGENTS.md gotcha (MudBlazor 7 compatibility)
+- [X] T003 [P] Create a reusable bUnit test helper in `tests/Certus.ComponentTests/Validation/ValidationTestContextExtensions.cs` that registers MudBlazor services (`Services.AddMudServices()`), sets `JSInterop.Mode = Loose`, renders a `MudPopoverProvider`, and exposes a `Mock<IValidationWebService>` builder — mirroring the existing pattern in `tests/Certus.ComponentTests/ValidationFlowTests.cs`
 
 ---
 
@@ -47,9 +47,9 @@ Single-project Blazor Server web application. All source changes are confined to
 
 **⚠️ CRITICAL**: US2, US3, and US4 cannot be implemented until these components exist. (US1/navigation does not consume these components and is independent — see Dependencies.)
 
-- [ ] T004 [P] Create `src/Certus.Dashboard/Components/Shared/PageHeader.razor` with parameters: `Title` (string, **Required**) — "Bold page title (`Typo.h4`, white, weight 700–800)"; `Description` (string?, optional, default `null`) — "Muted supporting line (`#64748b`). Hidden when null/empty."; `Icon` (string, **Required**) — Material icon inside the accent tile; `IconGradient` (string, optional, default `linear-gradient(135deg, #3b82f6, #8b5cf6)`); `Actions` (`RenderFragment?`, optional, default `null`) — right-aligned action slot. Validation rules: "`Title` and `Icon` must be non-empty." Invariant **PH-1**: "Emits no `<h1>` and no browser-default heading" (render via `MudText Typo="Typo.h4"`). Invariant **PH-2**: "44px tile, radius 12px, white bold title, muted description" (mirror `Components/Pages/PlatformDashboard.razor` header)
-- [ ] T005 [P] Create `src/Certus.Dashboard/Components/Shared/DashboardCard.razor` with parameters: `ChildContent` (`RenderFragment`, **Required**) — card body; `Class` (string?, optional, default `null`) — pass-through spacing utilities; `Padding` (string?, optional, default `pa-6`). Invariant **DC-1**: renders canonical surface "gradient `#1e293b→#0f172a`, border `1px solid #334155`, radius `16px`". Invariant **DC-2**: "MUST NOT render a MudBlazor default light elevated surface (`MudPaper Elevation="2"` light look)" (mirror `Components/Shared/KpiCard.razor`)
-- [ ] T006 [P] Create `src/Certus.Dashboard/Components/Shared/EmptyState.razor` with parameters: `Icon` (string, **Required**) — Material icon inside a muted tile; `Title` (string, **Required**) — "`Typo.h6`, `#94a3b8`"; `Description` (string?, optional, default `null`) — "`#64748b`/`#475569`"; `Action` (`RenderFragment?`, optional, default `null`). Invariant **ES-1**: "same empty-state composition as the reference pages ('No platform connections' / 'Portfolio not found')"
+- [X] T004 [P] Create `src/Certus.Dashboard/Components/Shared/PageHeader.razor` with parameters: `Title` (string, **Required**) — "Bold page title (`Typo.h4`, white, weight 700–800)"; `Description` (string?, optional, default `null`) — "Muted supporting line (`#64748b`). Hidden when null/empty."; `Icon` (string, **Required**) — Material icon inside the accent tile; `IconGradient` (string, optional, default `linear-gradient(135deg, #3b82f6, #8b5cf6)`); `Actions` (`RenderFragment?`, optional, default `null`) — right-aligned action slot. Validation rules: "`Title` and `Icon` must be non-empty." Invariant **PH-1**: "Emits no `<h1>` and no browser-default heading" (render via `MudText Typo="Typo.h4"`). Invariant **PH-2**: "44px tile, radius 12px, white bold title, muted description" (mirror `Components/Pages/PlatformDashboard.razor` header)
+- [X] T005 [P] Create `src/Certus.Dashboard/Components/Shared/DashboardCard.razor` with parameters: `ChildContent` (`RenderFragment`, **Required**) — card body; `Class` (string?, optional, default `null`) — pass-through spacing utilities; `Padding` (string?, optional, default `pa-6`). Invariant **DC-1**: renders canonical surface "gradient `#1e293b→#0f172a`, border `1px solid #334155`, radius `16px`". Invariant **DC-2**: "MUST NOT render a MudBlazor default light elevated surface (`MudPaper Elevation="2"` light look)" (mirror `Components/Shared/KpiCard.razor`)
+- [X] T006 [P] Create `src/Certus.Dashboard/Components/Shared/EmptyState.razor` with parameters: `Icon` (string, **Required**) — Material icon inside a muted tile; `Title` (string, **Required**) — "`Typo.h6`, `#94a3b8`"; `Description` (string?, optional, default `null`) — "`#64748b`/`#475569`"; `Action` (`RenderFragment?`, optional, default `null`). Invariant **ES-1**: "same empty-state composition as the reference pages ('No platform connections' / 'Portfolio not found')"
 
 **Checkpoint**: Shared building blocks ready — US2/US3/US4 restyle work can now proceed in parallel.
 
@@ -65,12 +65,12 @@ Single-project Blazor Server web application. All source changes are confined to
 
 ### Tests for User Story 1 ⚠️ (write FIRST, ensure they FAIL before implementation)
 
-- [ ] T007 [P] [US1] Write `Navigation_HasDataValidationEntry_Should_Render_And_Navigate` in `tests/Certus.ComponentTests/Navigation/NavigationTests.cs` (AC-001, AC-002): assert exactly **one** "Data Validation" `MudNavLink` with `Href="/validation"`, a section icon, and the same `Style`/`ActiveStyle` as the Portfolios/Platform links; using `FakeNavigationManager` assert clicking navigates to `/validation` and the entry is active (prefix) on `/validation`, `/validation/compare`, and `/validation/runs/{RunId}`
-- [ ] T008 [P] [US1] Write `Navigation_RunDetail_No_History_Route_Added` in `tests/Certus.ComponentTests/Navigation/NavigationTests.cs` (AC-018): assert no second top-level compare entry (INV-N1) and no run-history nav entry/route (INV-N2); only the three existing routes exist
+- [X] T007 [P] [US1] Write `Navigation_HasDataValidationEntry_Should_Render_And_Navigate` in `tests/Certus.ComponentTests/Navigation/NavigationTests.cs` (AC-001, AC-002): assert exactly **one** "Data Validation" `MudNavLink` with `Href="/validation"`, a section icon, and the same `Style`/`ActiveStyle` as the Portfolios/Platform links; using `FakeNavigationManager` assert clicking navigates to `/validation` and the entry is active (prefix) on `/validation`, `/validation/compare`, and `/validation/runs/{RunId}`
+- [X] T008 [P] [US1] Write `Navigation_RunDetail_No_History_Route_Added` in `tests/Certus.ComponentTests/Navigation/NavigationTests.cs` (AC-018): assert no second top-level compare entry (INV-N1) and no run-history nav entry/route (INV-N2); only the three existing routes exist
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Add a single "Data Validation" `MudNavLink` to `src/Certus.Dashboard/Components/Layout/NavMenu.razor`: `Href="/validation"`, `Match="NavLinkMatch.Prefix"`, `Icon="@Icons.Material.Filled.FactCheck"`, placed in the same `MudNavMenu` as the others, with `Style="color: #94a3b8; border-radius: 10px; margin-bottom: 4px;"` and `ActiveStyle="color: white; background: rgba(59, 130, 246, 0.12);"` identical to the existing Portfolios link. Exactly one entry; add no compare and no run-history entry (INV-N1, INV-N2, INV-N4)
+- [X] T009 [US1] Add a single "Data Validation" `MudNavLink` to `src/Certus.Dashboard/Components/Layout/NavMenu.razor`: `Href="/validation"`, `Match="NavLinkMatch.Prefix"`, `Icon="@Icons.Material.Filled.FactCheck"`, placed in the same `MudNavMenu` as the others, with `Style="color: #94a3b8; border-radius: 10px; margin-bottom: 4px;"` and `ActiveStyle="color: white; background: rgba(59, 130, 246, 0.12);"` identical to the existing Portfolios link. Exactly one entry; add no compare and no run-history entry (INV-N1, INV-N2, INV-N4)
 
 **Checkpoint**: US1 fully functional and independently testable — the Data Validation section is reachable and highlighted from the primary nav. Shippable as MVP.
 
@@ -86,20 +86,20 @@ Single-project Blazor Server web application. All source changes are confined to
 
 ### Tests for User Story 2 ⚠️ (write FIRST, ensure they FAIL before implementation)
 
-- [ ] T010 [P] [US2] Write `ValidationSubmit_HeaderAndCard_Style_Matches_Dashboard` in `tests/Certus.ComponentTests/Validation/ValidationSubmitTests.cs` (AC-003, AC-004, AC-005): assert the page renders shared `PageHeader` + `DashboardCard`; on submit the button shows `MudProgressCircular Size="Small" Indeterminate` + label and is disabled (U2), preventing duplicate submission
-- [ ] T011 [P] [US2] Write `ValidationSubmit_Rejection_Shows_Alert_Style` in `tests/Certus.ComponentTests/Validation/ValidationSubmitTests.cs` (AC-006): a `WebRunSubmission.Rejected` result and an oversize/upload error each render a `MudAlert Severity="Error"` (Code — Reason — Guidance) rather than plain text (U3, U4)
-- [ ] T012 [P] [US2] Write `ValidationSubmit_CompareOption_Visible_Inside_Section` in `tests/Certus.ComponentTests/Validation/ValidationSubmitTests.cs` (AC-017): assert a secondary in-section action to `/validation/compare` is present and there is no separate top-level nav entry (INV-N1)
-- [ ] T013 [P] [US2] Write `ValidationSubmit_Success_Navigates_Without_Reload` in `tests/Certus.ComponentTests/Validation/ValidationSubmitTests.cs` (AC-020): with `FakeNavigationManager`, a `WebRunSubmission.Accepted` result triggers `NavigateTo("/validation/runs/{id}", forceLoad: false)` (U5, INV-R4)
+- [X] T010 [P] [US2] Write `ValidationSubmit_HeaderAndCard_Style_Matches_Dashboard` in `tests/Certus.ComponentTests/Validation/ValidationSubmitTests.cs` (AC-003, AC-004, AC-005): assert the page renders shared `PageHeader` + `DashboardCard`; on submit the button shows `MudProgressCircular Size="Small" Indeterminate` + label and is disabled (U2), preventing duplicate submission
+- [X] T011 [P] [US2] Write `ValidationSubmit_Rejection_Shows_Alert_Style` in `tests/Certus.ComponentTests/Validation/ValidationSubmitTests.cs` (AC-006): a `WebRunSubmission.Rejected` result and an oversize/upload error each render a `MudAlert Severity="Error"` (Code — Reason — Guidance) rather than plain text (U3, U4)
+- [X] T012 [P] [US2] Write `ValidationSubmit_CompareOption_Visible_Inside_Section` in `tests/Certus.ComponentTests/Validation/ValidationSubmitTests.cs` (AC-017): assert a secondary in-section action to `/validation/compare` is present and there is no separate top-level nav entry (INV-N1)
+- [X] T013 [P] [US2] Write `ValidationSubmit_Success_Navigates_Without_Reload` in `tests/Certus.ComponentTests/Validation/ValidationSubmitTests.cs` (AC-020): with `FakeNavigationManager`, a `WebRunSubmission.Accepted` result triggers `NavigateTo("/validation/runs/{id}", forceLoad: false)` (U5, INV-R4)
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] In `src/Certus.Dashboard/Components/Pages/ValidationSubmit.razor`, replace the `<h1>`/plain `<p>` header with the shared `PageHeader` (Title, Description, Icon) — no `<h1>` remains (FR-003, PH-1)
-- [ ] T015 [US2] In `src/Certus.Dashboard/Components/Pages/ValidationSubmit.razor`, replace the `MudPaper Elevation="2"` form surface with the shared `DashboardCard`; keep file/timeframe/instrument/checkbox/button controls as standard MudBlazor controls with the same density/states (FR-004, FR-005, U1)
-- [ ] T016 [US2] In `src/Certus.Dashboard/Components/Pages/ValidationSubmit.razor`, add the compare secondary action (via `PageHeader.Actions` or an in-card `MudButton`/link) navigating to `/validation/compare` (FR-002a, AC-017)
-- [ ] T017 [US2] In `src/Certus.Dashboard/Components/Pages/ValidationSubmit.razor`, ensure the submit busy state uses `MudProgressCircular Size="Small" Indeterminate` + label with a disabled button and duplicate-submit prevention while `IsSubmitting == true` (FR-006, AC-005, U2)
-- [ ] T018 [US2] In `src/Certus.Dashboard/Components/Pages/ValidationSubmit.razor`, ensure rejection and upload/oversize errors render via `MudAlert Severity="Error"` (Code — Reason — Guidance), with no plain-text strips remaining (FR-011, AC-006, U3, U4)
-- [ ] T019 [US2] In `src/Certus.Dashboard/Components/Pages/ValidationSubmit.razor`, preserve `NavigationManager.NavigateTo($"/validation/runs/{id}", forceLoad: false)` on an accepted submission (FR-012, AC-020, U5, INV-R4)
-- [ ] T020 [P] [US2] Apply the same rebuild to `src/Certus.Dashboard/Components/Pages/ValidationCompare.razor`: identical `PageHeader` + `DashboardCard` composition, standard controls, busy state, `MudAlert Severity="Error"` errors, no-reload success navigation, and a reciprocal secondary action back to `/validation` (FR-002a, FR-003, FR-004, FR-005, FR-006, FR-011, FR-012; AC-004)
+- [X] T014 [US2] In `src/Certus.Dashboard/Components/Pages/ValidationSubmit.razor`, replace the `<h1>`/plain `<p>` header with the shared `PageHeader` (Title, Description, Icon) — no `<h1>` remains (FR-003, PH-1)
+- [X] T015 [US2] In `src/Certus.Dashboard/Components/Pages/ValidationSubmit.razor`, replace the `MudPaper Elevation="2"` form surface with the shared `DashboardCard`; keep file/timeframe/instrument/checkbox/button controls as standard MudBlazor controls with the same density/states (FR-004, FR-005, U1)
+- [X] T016 [US2] In `src/Certus.Dashboard/Components/Pages/ValidationSubmit.razor`, add the compare secondary action (via `PageHeader.Actions` or an in-card `MudButton`/link) navigating to `/validation/compare` (FR-002a, AC-017)
+- [X] T017 [US2] In `src/Certus.Dashboard/Components/Pages/ValidationSubmit.razor`, ensure the submit busy state uses `MudProgressCircular Size="Small" Indeterminate` + label with a disabled button and duplicate-submit prevention while `IsSubmitting == true` (FR-006, AC-005, U2)
+- [X] T018 [US2] In `src/Certus.Dashboard/Components/Pages/ValidationSubmit.razor`, ensure rejection and upload/oversize errors render via `MudAlert Severity="Error"` (Code — Reason — Guidance), with no plain-text strips remaining (FR-011, AC-006, U3, U4)
+- [X] T019 [US2] In `src/Certus.Dashboard/Components/Pages/ValidationSubmit.razor`, preserve `NavigationManager.NavigateTo($"/validation/runs/{id}", forceLoad: false)` on an accepted submission (FR-012, AC-020, U5, INV-R4)
+- [X] T020 [P] [US2] Apply the same rebuild to `src/Certus.Dashboard/Components/Pages/ValidationCompare.razor`: identical `PageHeader` + `DashboardCard` composition, standard controls, busy state, `MudAlert Severity="Error"` errors, no-reload success navigation, and a reciprocal secondary action back to `/validation` (FR-002a, FR-003, FR-004, FR-005, FR-006, FR-011, FR-012; AC-004)
 
 **Checkpoint**: US1 and US2 both work independently — both submission pages match the dashboard and route without full reload.
 
@@ -115,19 +115,19 @@ Single-project Blazor Server web application. All source changes are confined to
 
 ### Tests for User Story 3 ⚠️ (write FIRST, ensure they FAIL before implementation)
 
-- [ ] T021 [P] [US3] Write `ValidationRunDetail_Status_Shows_Consistent_Style_Per_State` in `tests/Certus.ComponentTests/Validation/ValidationRunDetailTests.cs` (AC-007–AC-011): parametrize `WebRunStatus` → Pending/Running render `MudAlert Severity="Info"` + `MudProgressCircular` + Refresh `MudButton` (S2/S3, AC-010); `CompletedClean` → `MudAlert Severity="Success"` + quality table (S4, AC-007); `CompletedWithFindings` → `MudAlert Severity="Warning"` with all counts visible (S5, AC-008); `Failed` → `MudAlert Severity="Error"` with Code/Reason/Guidance (S6, AC-009); Unavailable → `MudAlert Severity="Warning"`/`EmptyState` (S7)
-- [ ] T022 [P] [US3] Write `ValidationRunDetail_ExportButtons_Style_Matches_Dashboard` in `tests/Certus.ComponentTests/Validation/ValidationRunDetailTests.cs` (AC-012): when `View.AvailableExports.Count > 0`, one secondary `MudButton Variant="Outlined"` renders per `ReportRepresentation` (S9)
-- [ ] T023 [P] [US3] Write `ValidationRunDetail_Scores_Render_On_Standard_Typography` in `tests/Certus.ComponentTests/Validation/ValidationRunDetailTests.cs` (AC-013, AC-011): the scoring section renders dataset average + per-dimension `Category`/`State`/`Score` rows in a dashboard-styled table, numbers on the standard KPI typographic scale (S8)
+- [X] T021 [P] [US3] Write `ValidationRunDetail_Status_Shows_Consistent_Style_Per_State` in `tests/Certus.ComponentTests/Validation/ValidationRunDetailTests.cs` (AC-007–AC-011): parametrize `WebRunStatus` → Pending/Running render `MudAlert Severity="Info"` + `MudProgressCircular` + Refresh `MudButton` (S2/S3, AC-010); `CompletedClean` → `MudAlert Severity="Success"` + quality table (S4, AC-007); `CompletedWithFindings` → `MudAlert Severity="Warning"` with all counts visible (S5, AC-008); `Failed` → `MudAlert Severity="Error"` with Code/Reason/Guidance (S6, AC-009); Unavailable → `MudAlert Severity="Warning"`/`EmptyState` (S7)
+- [X] T022 [P] [US3] Write `ValidationRunDetail_ExportButtons_Style_Matches_Dashboard` in `tests/Certus.ComponentTests/Validation/ValidationRunDetailTests.cs` (AC-012): when `View.AvailableExports.Count > 0`, one secondary `MudButton Variant="Outlined"` renders per `ReportRepresentation` (S9)
+- [X] T023 [P] [US3] Write `ValidationRunDetail_Scores_Render_On_Standard_Typography` in `tests/Certus.ComponentTests/Validation/ValidationRunDetailTests.cs` (AC-013, AC-011): the scoring section renders dataset average + per-dimension `Category`/`State`/`Score` rows in a dashboard-styled table, numbers on the standard KPI typographic scale (S8)
 
 ### Implementation for User Story 3
 
-- [ ] T024 [US3] In `src/Certus.Dashboard/Components/Pages/ValidationRunDetail.razor`, add the shared `PageHeader` (remove any `<h1>`/plain header) (FR-003, PH-1)
-- [ ] T025 [US3] In `src/Certus.Dashboard/Components/Pages/ValidationRunDetail.razor`, implement status banners per the status→presentation map, preserving state→severity mapping (SP-2): Pending/Running → `MudAlert Severity="Info"` + `MudProgressCircular` + Refresh button (S2/S3, AC-010); CompletedClean → `MudAlert Severity="Success"` (S4, AC-007); CompletedWithFindings → `MudAlert Severity="Warning"` (S5, AC-008); Failed → `MudAlert Severity="Error"` with `FatalDiagnostic` Code/Reason/Guidance (S6, AC-009). Keep the sequential `GetStatusAsync` → `GetResultAsync` awaits (NO `Task.WhenAll`)
-- [ ] T026 [US3] In `src/Certus.Dashboard/Components/Pages/ValidationRunDetail.razor`, render the `DetailedSummary` counts (`MissingCandles`, `DuplicateRecords`, `InvalidOhlc`, `ClosedMarketRecords`, `TimeGaps`, `MalformedRows`) inside a `DashboardCard` using a dashboard-styled table (`MudTable`/`MudSimpleTable Hover Dense`, `#1e293b` bg, `#94a3b8` header) — all counts visible (FR-008, AC-011, SP-3, S4/S5)
-- [ ] T027 [US3] In `src/Certus.Dashboard/Components/Pages/ValidationRunDetail.razor`, render the scoring section (dataset average + per-dimension `Category`/`State`/`Score` from `WebScoringSection`/`ScoreDisplay`) inside a `DashboardCard` + dashboard table; numeric values on the standard KPI typographic scale (FR-008, AC-013, S8)
-- [ ] T028 [US3] In `src/Certus.Dashboard/Components/Pages/ValidationRunDetail.razor`, render available exports (`IReadOnlyList<ReportRepresentation>`) as one secondary `MudButton Variant="Outlined"` per representation; keep the existing JS-interop download behavior unchanged (FR-009, AC-012, S9)
-- [ ] T029 [US3] In `src/Certus.Dashboard/Components/Pages/ValidationRunDetail.razor`, replace the bare `MudProgressLinear` initial-load indicator with `MudSkeleton Animation="Wave"` so no blank white region appears on first render (FR-010, AC-014, S1)
-- [ ] T030 [US3] In `src/Certus.Dashboard/Components/Pages/ValidationRunDetail.razor`, render the Unavailable/unknown/expired/invalid-id state via `MudAlert Severity="Warning"` or the shared `EmptyState` (no crash); preserve `WebRunId.Parse` behavior (FR-007, S7, INV-R3)
+- [X] T024 [US3] In `src/Certus.Dashboard/Components/Pages/ValidationRunDetail.razor`, add the shared `PageHeader` (remove any `<h1>`/plain header) (FR-003, PH-1)
+- [X] T025 [US3] In `src/Certus.Dashboard/Components/Pages/ValidationRunDetail.razor`, implement status banners per the status→presentation map, preserving state→severity mapping (SP-2): Pending/Running → `MudAlert Severity="Info"` + `MudProgressCircular` + Refresh button (S2/S3, AC-010); CompletedClean → `MudAlert Severity="Success"` (S4, AC-007); CompletedWithFindings → `MudAlert Severity="Warning"` (S5, AC-008); Failed → `MudAlert Severity="Error"` with `FatalDiagnostic` Code/Reason/Guidance (S6, AC-009). Keep the sequential `GetStatusAsync` → `GetResultAsync` awaits (NO `Task.WhenAll`)
+- [X] T026 [US3] In `src/Certus.Dashboard/Components/Pages/ValidationRunDetail.razor`, render the `DetailedSummary` counts (`MissingCandles`, `DuplicateRecords`, `InvalidOhlc`, `ClosedMarketRecords`, `TimeGaps`, `MalformedRows`) inside a `DashboardCard` using a dashboard-styled table (`MudTable`/`MudSimpleTable Hover Dense`, `#1e293b` bg, `#94a3b8` header) — all counts visible (FR-008, AC-011, SP-3, S4/S5)
+- [X] T027 [US3] In `src/Certus.Dashboard/Components/Pages/ValidationRunDetail.razor`, render the scoring section (dataset average + per-dimension `Category`/`State`/`Score` from `WebScoringSection`/`ScoreDisplay`) inside a `DashboardCard` + dashboard table; numeric values on the standard KPI typographic scale (FR-008, AC-013, S8)
+- [X] T028 [US3] In `src/Certus.Dashboard/Components/Pages/ValidationRunDetail.razor`, render available exports (`IReadOnlyList<ReportRepresentation>`) as one secondary `MudButton Variant="Outlined"` per representation; keep the existing JS-interop download behavior unchanged (FR-009, AC-012, S9)
+- [X] T029 [US3] In `src/Certus.Dashboard/Components/Pages/ValidationRunDetail.razor`, replace the bare `MudProgressLinear` initial-load indicator with `MudSkeleton Animation="Wave"` so no blank white region appears on first render (FR-010, AC-014, S1)
+- [X] T030 [US3] In `src/Certus.Dashboard/Components/Pages/ValidationRunDetail.razor`, render the Unavailable/unknown/expired/invalid-id state via `MudAlert Severity="Warning"` or the shared `EmptyState` (no crash); preserve `WebRunId.Parse` behavior (FR-007, S7, INV-R3)
 
 **Checkpoint**: US1, US2, and US3 all work independently — all three validation pages match the dashboard presentation.
 
@@ -143,15 +143,15 @@ Single-project Blazor Server web application. All source changes are confined to
 
 ### Tests for User Story 4 ⚠️ (write FIRST, ensure they FAIL before implementation)
 
-- [ ] T031 [P] [US4] Write `ValidationPages_LoadingState_Style_Matches_Dashboard` in `tests/Certus.ComponentTests/Validation/ValidationPagesTests.cs` (AC-014): on first render, a validation page shows the skeleton/progress treatment (e.g., `MudSkeleton`) with no blank white region (S1)
-- [ ] T032 [P] [US4] Write `ValidationPages_No_Unstyled_Headings_Or_Light_Surfaces` in `tests/Certus.ComponentTests/Validation/ValidationPagesTests.cs` (AC-015): assert none of the three pages render an `<h1>`, plain paragraph text strips, or a `MudPaper Elevation="2"` light elevated surface (NFR-002, G-2)
-- [ ] T033 [P] [US4] Write `ValidationPages_Shares_Dashboard_Building_Blocks` in `tests/Certus.ComponentTests/Validation/ValidationPagesTests.cs` (AC-019): assert each page renders the shared `PageHeader`/`DashboardCard`/`EmptyState` components (structural parity), not one-off lookalike markup (FR-013, G-1)
+- [X] T031 [P] [US4] Write `ValidationPages_LoadingState_Style_Matches_Dashboard` in `tests/Certus.ComponentTests/Validation/ValidationPagesTests.cs` (AC-014): on first render, a validation page shows the skeleton/progress treatment (e.g., `MudSkeleton`) with no blank white region (S1)
+- [X] T032 [P] [US4] Write `ValidationPages_No_Unstyled_Headings_Or_Light_Surfaces` in `tests/Certus.ComponentTests/Validation/ValidationPagesTests.cs` (AC-015): assert none of the three pages render an `<h1>`, plain paragraph text strips, or a `MudPaper Elevation="2"` light elevated surface (NFR-002, G-2)
+- [X] T033 [P] [US4] Write `ValidationPages_Shares_Dashboard_Building_Blocks` in `tests/Certus.ComponentTests/Validation/ValidationPagesTests.cs` (AC-019): assert each page renders the shared `PageHeader`/`DashboardCard`/`EmptyState` components (structural parity), not one-off lookalike markup (FR-013, G-1)
 
 ### Implementation for User Story 4
 
-- [ ] T034 [US4] Cross-page audit and cleanup across `src/Certus.Dashboard/Components/Pages/ValidationSubmit.razor`, `ValidationCompare.razor`, and `ValidationRunDetail.razor`: remove any residual `<h1>`, plain paragraph strips, or default light elevated surfaces and replace with the shared building blocks (NFR-002, G-2, AC-015)
-- [ ] T035 [US4] Verify responsive layout across the three validation pages: control rows align to the standard responsive grid/breakpoints with no horizontal overflow at supported widths (NFR-003, G-3)
-- [ ] T036 [US4] Verify WCAG AA contrast parity across the three validation pages using the shared design tokens (no custom colors introduced) (NFR-004, G-4)
+- [X] T034 [US4] Cross-page audit and cleanup across `src/Certus.Dashboard/Components/Pages/ValidationSubmit.razor`, `ValidationCompare.razor`, and `ValidationRunDetail.razor`: remove any residual `<h1>`, plain paragraph strips, or default light elevated surfaces and replace with the shared building blocks (NFR-002, G-2, AC-015)
+- [X] T035 [US4] Verify responsive layout across the three validation pages: control rows align to the standard responsive grid/breakpoints with no horizontal overflow at supported widths (NFR-003, G-3)
+- [X] T036 [US4] Verify WCAG AA contrast parity across the three validation pages using the shared design tokens (no custom colors introduced) (NFR-004, G-4)
 
 **Checkpoint**: All validation pages are structurally identical to the dashboard in composition and contain no legacy/un-themed elements.
 
@@ -161,11 +161,11 @@ Single-project Blazor Server web application. All source changes are confined to
 
 **Purpose**: Behavioral-regression gates, full verification, and documentation
 
-- [ ] T037 [P] Behavioral regression gate (AC-016, NFR-005): run the CI-order suites — `dotnet test tests/Certus.Domain.Tests/`, `tests/Certus.Application.Tests/`, `tests/Certus.Infrastructure.Tests/`, `tests/Certus.IntegrationTests/`, `tests/Certus.ArchitectureTests/` — and confirm all pass unchanged
-- [ ] T038 [P] Run `dotnet test tests/Certus.ComponentTests/` and confirm all new feature tests pass and the existing `tests/Certus.ComponentTests/ValidationFlowTests.cs` remains green
-- [ ] T039 Execute the manual validation scenarios 1–12 in `specs/001-validation-ui-compliance/quickstart.md` against `dotnet run --project src/Certus.Dashboard`
-- [ ] T040 [P] Mark satisfied requirement/AC checkboxes in `specs/001-validation-ui-compliance/spec.md` and record the outcome in `specs/session-log.md`
-- [ ] T041 Final structural-parity review of the three validation pages against the reference pages (`src/Certus.Dashboard/Components/Pages/PlatformDashboard.razor`, `PortfolioDashboard.razor`, `Components/Shared/KpiCard.razor`) to confirm token/composition parity (G-1)
+- [X] T037 [P] Behavioral regression gate (AC-016, NFR-005): run the CI-order suites — `dotnet test tests/Certus.Domain.Tests/`, `tests/Certus.Application.Tests/`, `tests/Certus.Infrastructure.Tests/`, `tests/Certus.IntegrationTests/`, `tests/Certus.ArchitectureTests/` — and confirm all pass unchanged
+- [X] T038 [P] Run `dotnet test tests/Certus.ComponentTests/` and confirm all new feature tests pass and the existing `tests/Certus.ComponentTests/ValidationFlowTests.cs` remains green
+- [X] T039 Execute the manual validation scenarios 1–12 in `specs/001-validation-ui-compliance/quickstart.md` against `dotnet run --project src/Certus.Dashboard`
+- [X] T040 [P] Mark satisfied requirement/AC checkboxes in `specs/001-validation-ui-compliance/spec.md` and record the outcome in `specs/session-log.md`
+- [X] T041 Final structural-parity review of the three validation pages against the reference pages (`src/Certus.Dashboard/Components/Pages/PlatformDashboard.razor`, `PortfolioDashboard.razor`, `Components/Shared/KpiCard.razor`) to confirm token/composition parity (G-1)
 
 ---
 
@@ -255,3 +255,14 @@ With multiple developers, after Setup + Foundational:
 - bUnit stays pinned to 1.35.x for MudBlazor 7
 - Routes are unchanged: `/validation`, `/validation/compare`, `/validation/runs/{RunId}` — no new route (AC-018)
 - Verify each test fails before implementing; commit after each task or logical group
+
+---
+
+## Completion Summary (2026-09-09)
+
+All 41 tasks complete. Delivered in the presentation layer only (`src/Certus.Dashboard`), test-first:
+
+- **New shared components**: `Components/Shared/PageHeader.razor`, `DashboardCard.razor`, `EmptyState.razor`
+- **Edited**: `Components/Layout/NavMenu.razor` (single Data Validation entry), `Components/Pages/ValidationSubmit.razor`, `ValidationCompare.razor`, `ValidationRunDetail.razor` (rebuilt on shared blocks)
+- **New tests**: `tests/Certus.ComponentTests/Navigation/NavigationTests.cs`, `Validation/ValidationSubmitTests.cs`, `ValidationRunDetailTests.cs`, `ValidationPagesTests.cs`, `Validation/ValidationTestContextExtensions.cs`
+- **Verification**: ComponentTests 26/26 green (incl. existing ValidationFlowTests). CI-order suites green & unchanged — Domain 792, Application 190, Infrastructure 52, Integration 29, Architecture 6 (AC-016/NFR-005).

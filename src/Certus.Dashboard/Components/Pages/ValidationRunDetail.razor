@@ -5,102 +5,125 @@
 
 <PageTitle>Validation Run @RunId</PageTitle>
 
-<h1>Validation Run</h1>
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="pa-6">
+    <PageHeader Title="Validation Run"
+                Description="Durable run result. This page reflects the stored run state and never triggers new work."
+                Icon="@Icons.Material.Filled.FactCheck" />
 
-@if (IsLoading)
-{
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
-}
-else if (UnavailableReason is not null)
-{
-    <MudAlert Severity="Severity.Warning" Class="mb-4">@UnavailableReason</MudAlert>
-}
-else if (Status is WebRunStatus.Pending or WebRunStatus.Running)
-{
-    <MudAlert Severity="Severity.Info" Class="mb-4">
-        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-        The run is @Status.ToString().ToLowerInvariant(). This page reflects the durable run state and never triggers work.
-    </MudAlert>
-    <MudButton Variant="Variant.Outlined" OnClick="RefreshAsync">Refresh status</MudButton>
-}
-else if (View is not null && View.Status == WebRunStatus.Failed)
-{
-    <MudAlert Severity="Severity.Error" Class="mb-4">
-        <MudText Typo="Typo.h6">Validation failed</MudText>
-        <MudText Typo="Typo.body2"><strong>@View.Diagnostic?.Code</strong> &mdash; @View.Diagnostic?.Reason</MudText>
-        <MudText Typo="Typo.caption">@View.Diagnostic?.Guidance</MudText>
-    </MudAlert>
-}
-else if (View is not null)
-{
-    var summary = View.Validation?.Summary;
-    var severity = View.Status == WebRunStatus.CompletedClean ? Severity.Success : Severity.Warning;
-    <MudAlert Severity="@severity" Class="mb-4">
-        @(View.Status == WebRunStatus.CompletedClean
-            ? "Validation complete: the dataset is clean."
-            : "Validation complete: findings detected.")
-    </MudAlert>
-
-    @if (summary is not null)
+    @if (IsLoading)
     {
-        <MudPaper Class="pa-4 mb-4" Elevation="2">
-            <MudText Typo="Typo.h6" Class="mb-2">Quality checks</MudText>
-            <MudSimpleTable Hover="true" Dense="true" Class="mt-2">
-                <thead>
-                    <tr><th>Check</th><th>Count</th></tr>
-                </thead>
-                <tbody>
-                    <tr><td>Missing candles</td><td>@summary.MissingCandles</td></tr>
-                    <tr><td>Duplicate records</td><td>@summary.DuplicateRecords</td></tr>
-                    <tr><td>Invalid OHLC</td><td>@summary.InvalidOhlc</td></tr>
-                    <tr><td>Closed-market records</td><td>@summary.ClosedMarketRecords</td></tr>
-                    <tr><td>Time gaps</td><td>@summary.TimeGaps</td></tr>
-                    <tr><td>Malformed rows</td><td>@summary.MalformedRows</td></tr>
-                </tbody>
-            </MudSimpleTable>
-        </MudPaper>
-    }
-
-    @if (View.Scoring is not null)
-    {
-        <MudPaper Class="pa-4 mb-4" Elevation="2">
-            <MudText Typo="Typo.h6" Class="mb-2">Quality score</MudText>
-            <MudText Typo="Typo.body1">
-                Dataset average: <strong>@(View.Scoring.Score.Dataset.Average?.Format() ?? "unavailable")</strong> / 100
-            </MudText>
-            <MudSimpleTable Hover="true" Dense="true" Class="mt-2">
-                <thead>
-                    <tr><th>Dimension</th><th>State</th><th>Score</th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var metric in View.Scoring.Score.Metrics)
-                    {
-                        <tr>
-                            <td>@metric.Category</td>
-                            <td>@metric.State</td>
-                            <td>@(metric.Score?.Format() ?? "-")</td>
-                        </tr>
-                    }
-                </tbody>
-            </MudSimpleTable>
-        </MudPaper>
-    }
-
-    @if (View.AvailableExports.Count > 0)
-    {
-        <MudPaper Class="pa-4 mb-4" Elevation="2">
-            <MudText Typo="Typo.h6" Class="mb-2">Download report</MudText>
-            @foreach (var representation in View.AvailableExports)
+        @* S1 / AC-014: skeleton treatment on first render — no blank white region. *@
+        <DashboardCard>
+            <MudSkeleton Animation="Animation.Wave" Height="40px" Width="280px" Class="mb-4" />
+            @for (int i = 0; i < 4; i++)
             {
-                <MudButton Class="mr-2 mb-2" Variant="Variant.Outlined" Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.Download"
-                           OnClick="() => DownloadAsync(representation)">
-                    @representation
-                </MudButton>
+                <MudSkeleton Animation="Animation.Wave" Height="28px" Class="mb-2" />
             }
-        </MudPaper>
+        </DashboardCard>
     }
-}
+    else if (UnavailableReason is not null)
+    {
+        @* S7: unavailable/unknown/expired/invalid id — no crash. *@
+        <EmptyState Icon="@Icons.Material.Filled.SearchOff"
+                    Title="Run unavailable"
+                    Description="@UnavailableReason" />
+    }
+    else if (Status is WebRunStatus.Pending or WebRunStatus.Running)
+    {
+        @* S2/S3, AC-010: informational banner + progress + refresh action. *@
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                <span>The run is @Status.ToString().ToLowerInvariant(). This page reflects the durable run state and never triggers work.</span>
+            </div>
+        </MudAlert>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Refresh" OnClick="RefreshAsync">Refresh status</MudButton>
+    }
+    else if (View is not null && View.Status == WebRunStatus.Failed)
+    {
+        @* S6, AC-009: failure banner — message + diagnostic code + guidance. *@
+        <MudAlert Severity="Severity.Error" Class="mb-4">
+            <MudText Typo="Typo.h6">Validation failed</MudText>
+            <MudText Typo="Typo.body2"><strong>@View.Diagnostic?.Code</strong> &mdash; @View.Diagnostic?.Reason</MudText>
+            <MudText Typo="Typo.caption">@View.Diagnostic?.Guidance</MudText>
+        </MudAlert>
+    }
+    else if (View is not null)
+    {
+        var summary = View.Validation?.Summary;
+        var severity = View.Status == WebRunStatus.CompletedClean ? Severity.Success : Severity.Warning;
+        @* S4/S5, AC-007/AC-008: success/warning banner per state→severity map. *@
+        <MudAlert Severity="@severity" Class="mb-4">
+            @(View.Status == WebRunStatus.CompletedClean
+                ? "Validation complete: the dataset is clean."
+                : "Validation complete: findings detected.")
+        </MudAlert>
+
+        @if (summary is not null)
+        {
+            @* S4/S5, AC-011: quality counts in a dashboard-styled table inside a card. *@
+            <DashboardCard Class="mb-4">
+                <MudText Typo="Typo.h6" Class="mb-2" Style="color: white; font-weight: 700;">Quality checks</MudText>
+                <MudSimpleTable Hover="true" Dense="true" Class="mt-2" Style="background: #1e293b;">
+                    <thead>
+                        <tr><th style="color: #94a3b8;">Check</th><th style="color: #94a3b8;">Count</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Missing candles</td><td>@summary.MissingCandles</td></tr>
+                        <tr><td>Duplicate records</td><td>@summary.DuplicateRecords</td></tr>
+                        <tr><td>Invalid OHLC</td><td>@summary.InvalidOhlc</td></tr>
+                        <tr><td>Closed-market records</td><td>@summary.ClosedMarketRecords</td></tr>
+                        <tr><td>Time gaps</td><td>@summary.TimeGaps</td></tr>
+                        <tr><td>Malformed rows</td><td>@summary.MalformedRows</td></tr>
+                    </tbody>
+                </MudSimpleTable>
+            </DashboardCard>
+        }
+
+        @if (View.Scoring is not null)
+        {
+            @* S8, AC-013: scoring in a dashboard-styled table on the standard scale. *@
+            <DashboardCard Class="mb-4">
+                <MudText Typo="Typo.h6" Class="mb-2" Style="color: white; font-weight: 700;">Quality score</MudText>
+                <MudText Typo="Typo.h5" Style="color: white; font-weight: 800; font-family: 'Inter', monospace; letter-spacing: -0.02em;">
+                    Dataset average: @(View.Scoring.Score.Dataset.Average?.Format() ?? "unavailable") / @View.Scoring.Score.Scale.Maximum
+                </MudText>
+                <MudSimpleTable Hover="true" Dense="true" Class="mt-2" Style="background: #1e293b;">
+                    <thead>
+                        <tr><th style="color: #94a3b8;">Dimension</th><th style="color: #94a3b8;">State</th><th style="color: #94a3b8;">Score</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var metric in View.Scoring.Score.Metrics)
+                        {
+                            <tr>
+                                <td>@metric.Category</td>
+                                <td>@metric.State</td>
+                                <td>@(metric.Score?.Format() ?? "-")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </DashboardCard>
+        }
+
+        @if (View.AvailableExports.Count > 0)
+        {
+            @* S9, AC-012: one secondary (outlined) button per available export. *@
+            <DashboardCard Class="mb-4">
+                <MudText Typo="Typo.h6" Class="mb-2" Style="color: white; font-weight: 700;">Download report</MudText>
+                @foreach (var representation in View.AvailableExports)
+                {
+                    <MudButton Class="mr-2 mb-2" Variant="Variant.Outlined" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Download"
+                               OnClick="() => DownloadAsync(representation)">
+                        @representation
+                    </MudButton>
+                }
+            </DashboardCard>
+        }
+    }
+</MudContainer>
 
 @code
 {

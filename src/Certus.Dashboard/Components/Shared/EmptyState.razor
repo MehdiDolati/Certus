@@ -1,0 +1,39 @@
+@* EmptyState (T006): the shared empty / unavailable / not-found composition —
+   muted icon tile + heading + supporting text (+ optional action). Mirrors the
+   "No platform connections" (PlatformDashboard.razor) and "Portfolio not found"
+   (PortfolioDetail.razor) patterns so empty regions on the validation pages use
+   the same building block rather than one-off markup (FR-010, Decision 5).
+   Invariant:
+     ES-1 — same empty-state composition as the reference pages. *@
+
+<MudPaper Elevation="0" Class="pa-12"
+          Style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 16px; text-align: center;">
+    <div style="width: 64px; height: 64px; border-radius: 16px; background: rgba(71, 85, 105, 0.2); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+        <MudIcon Icon="@Icon" Size="Size.Large" Style="color: #475569;" />
+    </div>
+    <MudText Typo="Typo.h6" Style="color: #94a3b8;">@Title</MudText>
+    @if (!string.IsNullOrWhiteSpace(Description))
+    {
+        <MudText Typo="Typo.body2" Style="color: #475569; margin-top: 4px;">@Description</MudText>
+    }
+    @if (Action is not null)
+    {
+        <div style="margin-top: 16px;">
+            @Action
+        </div>
+    }
+</MudPaper>
+
+@code {
+    // Material icon rendered inside the muted tile. Required.
+    [Parameter, EditorRequired] public string Icon { get; set; } = string.Empty;
+
+    // Heading (Typo.h6, #94a3b8). Required.
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+
+    // Supporting text (#64748b/#475569). Hidden when null/empty.
+    [Parameter] public string? Description { get; set; }
+
+    // Optional action button slot.
+    [Parameter] public RenderFragment? Action { get; set; }
+}

@@ -146,6 +146,18 @@ This file records prompts/requests made during development sessions for referenc
 
 ---
 
+### Prompt 13 — Validation UI Compliance (Spec-Driven, `/speckit-implement`)
+> Execute the implementation plan for feature `001-validation-ui-compliance` by processing all tasks in tasks.md.
+
+**Outcome**: Presentation-only feature delivered test-first per the tasks.md plan (41 tasks, 7 phases):
+1. **Shared building blocks** (`src/Certus.Dashboard/Components/Shared/`): `PageHeader.razor`, `DashboardCard.razor`, `EmptyState.razor` — the primitives that give the validation pages structural parity with the dashboard (FR-013/AC-019).
+2. **Navigation**: single "Data Validation" `MudNavLink` (`/validation`, `NavLinkMatch.Prefix`) added to `NavMenu.razor`; highlights across the whole section; no run-history route added (FR-001/FR-002/AC-018).
+3. **Pages rebuilt** on the shared blocks: `ValidationSubmit.razor`, `ValidationCompare.razor`, `ValidationRunDetail.razor` — page headers, dark gradient cards, status→severity alert map, dashboard-styled quality/score tables, secondary export buttons, skeleton loading, and `EmptyState` for unavailable runs. No `<h1>` or light elevated surfaces remain (NFR-002/AC-015).
+4. **Tests** (bUnit 1.35.x, `tests/Certus.ComponentTests/`): 26 component tests across Navigation, ValidationSubmit, ValidationRunDetail, ValidationPages — all authored from acceptance criteria and confirmed to fail before implementation (test-first).
+5. **Regression gate (AC-016/NFR-005)**: CI-order suites green and unchanged — Domain 792, Application 190, Infrastructure 52, Integration 29, Architecture 6; existing `ValidationFlowTests` still green. No Domain/Application/Infrastructure code modified.
+
+---
+
 ## Format
 
 Each prompt entry includes:

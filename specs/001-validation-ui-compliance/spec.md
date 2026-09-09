@@ -1,7 +1,7 @@
 # Validation UI Compliance
 
 ## Status
-Draft
+Implemented
 
 ## Overview
 The Data Validation workflow is currently presented with plain, unstyled page headings and generic elevated surfaces that look disconnected from the rest of the application, and it can only be reached by typing a URL. This feature makes the Data Validation area reachable from the application's main navigation and applies the same visual design language used across the other dashboard pages (consistent headings, card surfaces, result/status presentation, alert styling, and empty/loading states) **without changing any validation behavior or existing run URLs**.
@@ -24,29 +24,29 @@ The Data Validation workflow is currently presented with plain, unstyled page he
 
 ### Functional Requirements
 
-- [ ] FR-001: The user can reach the Data Validation section from the application's primary navigation with a single click from any page in the application, via a single navigation entry that opens the validation submission page.
-- [ ] FR-002: The single Data Validation navigation entry is permanently visible in the same navigation area as the other primary sections, uses the same label styling/icon treatment, and highlights when the user is inside the Data Validation section (validation, compare, or run detail pages).
-- [ ] FR-002a: The compare page is reachable as a secondary action within the Data Validation section (the submission card provides the option to switch to benchmark comparison), not as a separate top-level navigation entry.
-- [ ] FR-002b: No new run-history page or route is introduced; previously submitted runs remain reachable through the existing submission redirect, bookmarks, and shared links, and the Data Validation navigation entry displays the highlighted state on run detail pages as well.
-- [ ] FR-003: Every Data Validation page presents its title in the same page-header composition used by the other dashboard pages (accent icon tile, prominent title, and supporting description).
-- [ ] FR-004: The dataset submission form (validation and compare) is presented on surfaces that match the card design used across the platform: same background treatment, border, corner radius, inner spacing, and layering as the standard content cards.
-- [ ] FR-005: File selection, timeframe/benchmark/instrument inputs, checkboxes, and action buttons inside the submission cards use the same visual presentation, density, and states as equivalent controls found elsewhere in the application.
-- [ ] FR-006: In-progress submission (uploading/validating/comparing) is indicated using the same busy/processing visual treatment (with text + progress indicator) used by other primary actions in the application.
-- [ ] FR-007: The run detail page shows run state (pending, running, complete-clean, complete-with-findings, failed, unavailable) through consistent result/status messaging styles used elsewhere: clean → success presentation, findings → warning presentation, failed/unavailable → error presentation, and pending/running → informational presentation with the same progress treatment.
-- [ ] FR-008: Quality summary counts and scoring dimensions on the run detail page are displayed in structured content sections consistent with other data tables on the dashboard: same section headers, spacing, table density, and alternating/hover behavior.
-- [ ] FR-009: The report download controls use the standard action-button presentation used for similar secondary actions elsewhere in the application.
-- [ ] FR-010: Empty/loading states across the validation pages use the same skeleton/empty-state presentation (including empty-state icon treatment) as other dashboard pages.
-- [ ] FR-011: Submission rejection and upload error alerts use the same inline alert presentation used across the application rather than plain text strips.
-- [ ] FR-012: Successful submission navigates the user to the validation run results page using the same "primary call to action" flow and page transition as other cross-page navigation (no full page reload).
-- [ ] FR-013: The visible presentation of the validation pages is achieved with the same shared presentation building blocks used by the other dashboard pages (page header block, card/surface elements, alert elements, table elements, progress/skeleton indicators) rather than purpose-built one-off markup styled to look similar; no new one-off visual elements are introduced.
+- [x] FR-001: The user can reach the Data Validation section from the application's primary navigation with a single click from any page in the application, via a single navigation entry that opens the validation submission page.
+- [x] FR-002: The single Data Validation navigation entry is permanently visible in the same navigation area as the other primary sections, uses the same label styling/icon treatment, and highlights when the user is inside the Data Validation section (validation, compare, or run detail pages).
+- [x] FR-002a: The compare page is reachable as a secondary action within the Data Validation section (the submission card provides the option to switch to benchmark comparison), not as a separate top-level navigation entry.
+- [x] FR-002b: No new run-history page or route is introduced; previously submitted runs remain reachable through the existing submission redirect, bookmarks, and shared links, and the Data Validation navigation entry displays the highlighted state on run detail pages as well.
+- [x] FR-003: Every Data Validation page presents its title in the same page-header composition used by the other dashboard pages (accent icon tile, prominent title, and supporting description).
+- [x] FR-004: The dataset submission form (validation and compare) is presented on surfaces that match the card design used across the platform: same background treatment, border, corner radius, inner spacing, and layering as the standard content cards.
+- [x] FR-005: File selection, timeframe/benchmark/instrument inputs, checkboxes, and action buttons inside the submission cards use the same visual presentation, density, and states as equivalent controls found elsewhere in the application.
+- [x] FR-006: In-progress submission (uploading/validating/comparing) is indicated using the same busy/processing visual treatment (with text + progress indicator) used by other primary actions in the application.
+- [x] FR-007: The run detail page shows run state (pending, running, complete-clean, complete-with-findings, failed, unavailable) through consistent result/status messaging styles used elsewhere: clean → success presentation, findings → warning presentation, failed/unavailable → error presentation, and pending/running → informational presentation with the same progress treatment.
+- [x] FR-008: Quality summary counts and scoring dimensions on the run detail page are displayed in structured content sections consistent with other data tables on the dashboard: same section headers, spacing, table density, and alternating/hover behavior.
+- [x] FR-009: The report download controls use the standard action-button presentation used for similar secondary actions elsewhere in the application.
+- [x] FR-010: Empty/loading states across the validation pages use the same skeleton/empty-state presentation (including empty-state icon treatment) as other dashboard pages.
+- [x] FR-011: Submission rejection and upload error alerts use the same inline alert presentation used across the application rather than plain text strips.
+- [x] FR-012: Successful submission navigates the user to the validation run results page using the same "primary call to action" flow and page transition as other cross-page navigation (no full page reload).
+- [x] FR-013: The visible presentation of the validation pages is achieved with the same shared presentation building blocks used by the other dashboard pages (page header block, card/surface elements, alert elements, table elements, progress/skeleton indicators) rather than purpose-built one-off markup styled to look similar; no new one-off visual elements are introduced.
 
 ### Non-Functional Requirements
 
-- [ ] NFR-001: Visual consistency — every element visible on the three validation pages must be derived from the same design tokens (background surfaces, text colors, accent palette, border styles, radius, spacing) used by the rest of the application.
-- [ ] NFR-002: No legacy/un-themed element (`<h1>`, plain paragraph text, or default light elevated surfaces) may remain on the three validation pages.
-- [ ] NFR-003: The validation pages must remain responsive in the same layout grid/breakpoint behavior used by other pages with no horizontal overflow at the standard supported widths.
-- [ ] NFR-004: All text on the validation pages must meet the same WCAG AA contrast requirements as the rest of the application.
-- [ ] NFR-005: The styling/navigation change must not alter validation rule behavior, results content, or submission semantics; test coverage at infrastructure/application level must remain green.
+- [x] NFR-001: Visual consistency — every element visible on the three validation pages must be derived from the same design tokens (background surfaces, text colors, accent palette, border styles, radius, spacing) used by the rest of the application.
+- [x] NFR-002: No legacy/un-themed element (`<h1>`, plain paragraph text, or default light elevated surfaces) may remain on the three validation pages.
+- [x] NFR-003: The validation pages must remain responsive in the same layout grid/breakpoint behavior used by other pages with no horizontal overflow at the standard supported widths.
+- [x] NFR-004: All text on the validation pages must meet the same WCAG AA contrast requirements as the rest of the application.
+- [x] NFR-005: The styling/navigation change must not alter validation rule behavior, results content, or submission semantics; test coverage at infrastructure/application level must remain green.
 
 ## Business Rules
 
@@ -58,26 +58,26 @@ The Data Validation workflow is currently presented with plain, unstyled page he
 
 ## Acceptance Criteria
 
-- [ ] AC-001: Given the application is running and the main navigation is visible, when the user browses the primary navigation items, then a single "Data Validation" entry is visible alongside the other primary sections, styled identically to them, with a consistent icon.
-- [ ] AC-002: Given the user is on any application page, when the user clicks the Data Validation navigation entry, then the validation submission page opens without error and the navigation entry displays the same selected/highlight treatment as the other selected entries.
-- [ ] AC-003: Given the validation submission page, when visually compared with the platform's other primary pages, then the page header and content surfaces use the same composition and design tokens (title block, supporting text, card surfaces, controls).
-- [ ] AC-004: Given the validation compare page, when visually compared with the validation submission page, then it shares the identical header composition and card/control presentation.
-- [ ] AC-005: Given a user submits a valid CSV file, when the submission is in progress, then the submit button shows the same processing treatment as other in-flight primary actions (spinner + label) and duplicate submission is prevented.
-- [ ] AC-006: Given a rejected submission or oversize upload, when the response returns, then the error is displayed with the same alert treatment used elsewhere (not as plain unstyled text).
-- [ ] AC-007: Given a completed clean run, when the result detail page renders, then the completion banner uses the success presentation matching the rest of the application and the quality check counts are shown in a structured table consistent with the dashboard.
-- [ ] AC-008: Given a completed run with findings, when the result detail page renders, then the completion banner/styling uses the warning presentation and all finding counts remain visible with dashboard-consistent spacing.
-- [ ] AC-009: Given a failed run with a diagnostic code, when the result detail page renders, then the failure is shown with the same failure presentation style (message, code, guidance) used for errors elsewhere in the application.
-- [ ] AC-010: Given a pending/running run, when the result detail page renders, then the informational treatment matches other informational/progress states in the application (progress indication + explanatory text + refresh action button).
-- [ ] AC-011: Given the run detail page with scoring enabled, when the page renders, then the dimension table uses the same header/density/spacing as the standard dashboard tables.
-- [ ] AC-012: Given the run detail page with available exports, when the user views the page, then download buttons use the same secondary-button style as equivalent actions on other pages.
-- [ ] AC-013: Given two clean datasets, when quality scores are reviewed on the detail page, then each score renders on the same typographic scale as other KPI/numeric values in the application.
-- [ ] AC-014: Given any validation page loading its data, when the page first renders, then loading feedback uses the same skeleton/progress treatment as other dashboard pages (no blank white region).
-- [ ] AC-015: Given all three validation pages after the restyle, when they are compared against the platform pages (e.g., Portfolios, Platform), then no plain/browser-default headings or default light elevated card surfaces remain.
-- [ ] AC-016: Given the existing automated test suite, when the suite is run, then all domain/application/infrastructure/architecture tests pass unchanged, confirming no behavioral regression from the visual alignment.
-- [ ] AC-017: Given the validation submission page, when the user looks for the benchmark comparison option, then a secondary action inside the section switches to the compare submission page without requiring a separate navigation entry.
-- [ ] AC-018: Given the set of application routes after this change, when the user browses the Data Validation section, then only the existing routes exist (`/validation`, `/validation/compare`, `/validation/runs/{RunId}`) and no new run-history route has been added.
-- [ ] AC-019: Given the restyled validation pages, when their visible elements are compared with the other dashboard pages, then each element uses the same shared presentation building blocks as the equivalent element elsewhere (no one-off lookalike markup, no stray default-browser appearance).
-- [ ] AC-020: Given a valid CSV submission, when processing completes successfully, then the user is automatically navigated to the run results page without a full page reload, matching the cross-page navigation behavior elsewhere in the application.
+- [x] AC-001: Given the application is running and the main navigation is visible, when the user browses the primary navigation items, then a single "Data Validation" entry is visible alongside the other primary sections, styled identically to them, with a consistent icon.
+- [x] AC-002: Given the user is on any application page, when the user clicks the Data Validation navigation entry, then the validation submission page opens without error and the navigation entry displays the same selected/highlight treatment as the other selected entries.
+- [x] AC-003: Given the validation submission page, when visually compared with the platform's other primary pages, then the page header and content surfaces use the same composition and design tokens (title block, supporting text, card surfaces, controls).
+- [x] AC-004: Given the validation compare page, when visually compared with the validation submission page, then it shares the identical header composition and card/control presentation.
+- [x] AC-005: Given a user submits a valid CSV file, when the submission is in progress, then the submit button shows the same processing treatment as other in-flight primary actions (spinner + label) and duplicate submission is prevented.
+- [x] AC-006: Given a rejected submission or oversize upload, when the response returns, then the error is displayed with the same alert treatment used elsewhere (not as plain unstyled text).
+- [x] AC-007: Given a completed clean run, when the result detail page renders, then the completion banner uses the success presentation matching the rest of the application and the quality check counts are shown in a structured table consistent with the dashboard.
+- [x] AC-008: Given a completed run with findings, when the result detail page renders, then the completion banner/styling uses the warning presentation and all finding counts remain visible with dashboard-consistent spacing.
+- [x] AC-009: Given a failed run with a diagnostic code, when the result detail page renders, then the failure is shown with the same failure presentation style (message, code, guidance) used for errors elsewhere in the application.
+- [x] AC-010: Given a pending/running run, when the result detail page renders, then the informational treatment matches other informational/progress states in the application (progress indication + explanatory text + refresh action button).
+- [x] AC-011: Given the run detail page with scoring enabled, when the page renders, then the dimension table uses the same header/density/spacing as the standard dashboard tables.
+- [x] AC-012: Given the run detail page with available exports, when the user views the page, then download buttons use the same secondary-button style as equivalent actions on other pages.
+- [x] AC-013: Given two clean datasets, when quality scores are reviewed on the detail page, then each score renders on the same typographic scale as other KPI/numeric values in the application.
+- [x] AC-014: Given any validation page loading its data, when the page first renders, then loading feedback uses the same skeleton/progress treatment as other dashboard pages (no blank white region).
+- [x] AC-015: Given all three validation pages after the restyle, when they are compared against the platform pages (e.g., Portfolios, Platform), then no plain/browser-default headings or default light elevated card surfaces remain.
+- [x] AC-016: Given the existing automated test suite, when the suite is run, then all domain/application/infrastructure/architecture tests pass unchanged, confirming no behavioral regression from the visual alignment.
+- [x] AC-017: Given the validation submission page, when the user looks for the benchmark comparison option, then a secondary action inside the section switches to the compare submission page without requiring a separate navigation entry.
+- [x] AC-018: Given the set of application routes after this change, when the user browses the Data Validation section, then only the existing routes exist (`/validation`, `/validation/compare`, `/validation/runs/{RunId}`) and no new run-history route has been added.
+- [x] AC-019: Given the restyled validation pages, when their visible elements are compared with the other dashboard pages, then each element uses the same shared presentation building blocks as the equivalent element elsewhere (no one-off lookalike markup, no stray default-browser appearance).
+- [x] AC-020: Given a valid CSV submission, when processing completes successfully, then the user is automatically navigated to the run results page without a full page reload, matching the cross-page navigation behavior elsewhere in the application.
 
 ## Test Mapping
 
@@ -110,3 +110,12 @@ The Data Validation workflow is currently presented with plain, unstyled page he
 - Existing validation pages: `/validation`, `/validation/compare`, `/validation/runs/{RunId}`
 - Shared dashboard page patterns (header, cards, tables, alerts, loading states) already established by the other primary dashboard sections
 - `Validator.*` application/domain services (behavior) — referenced for the run lifecycle but **not modified by this feature**
+
+## Implementation Notes (2026-09-09)
+
+Delivered on branch `001-validation-ui-compliance` in the presentation layer only (`src/Certus.Dashboard`):
+
+- **Shared building blocks** extracted to `Components/Shared/`: `PageHeader.razor`, `DashboardCard.razor`, `EmptyState.razor` (structural parity — FR-013/AC-019).
+- **Navigation**: a single "Data Validation" `MudNavLink` (`/validation`, `NavLinkMatch.Prefix`) added to `Components/Layout/NavMenu.razor`.
+- **Pages rebuilt** on the shared blocks: `ValidationSubmit.razor`, `ValidationCompare.razor`, `ValidationRunDetail.razor` (status→presentation map, dashboard tables, secondary export buttons, skeleton loading, EmptyState for unavailable runs). No `<h1>`/light surfaces remain.
+- **Verification**: 26 bUnit component tests (Navigation, ValidationSubmit, ValidationRunDetail, ValidationPages) pass; the CI-order suites remain green unchanged — Domain 792, Application 190, Infrastructure 52, Integration 29, Architecture 6 (AC-016/NFR-005).

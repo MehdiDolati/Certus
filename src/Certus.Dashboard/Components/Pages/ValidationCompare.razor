@@ -8,57 +8,62 @@
 
 <PageTitle>Dataset Comparison</PageTitle>
 
-<h1>Dataset Comparison</h1>
-<p class="mud-typography mud-typography-body1 mud-text-secondary">
-    Compare a candidate OHLCV dataset against a named, previously established benchmark.
-    Matched timestamps, material discrepancies, and the benchmark-agreement score are
-    reported separately from the candidate's own quality score.
-</p>
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="pa-6">
+    <PageHeader Title="Dataset Comparison"
+                Description="Compare a candidate OHLCV dataset against a named, previously established benchmark. Matched timestamps, material discrepancies, and the benchmark-agreement score are reported separately from the candidate's own quality score."
+                Icon="@Icons.Material.Filled.CompareArrows">
+        <Actions>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.FactCheck"
+                       Href="/validation">Validate dataset</MudButton>
+        </Actions>
+    </PageHeader>
 
-<MudPaper Class="pa-6 mb-4" Elevation="2">
-    <MudGrid>
-        <MudItem xs="12" md="6">
-            <InputFile OnChange="HandleFileChange" class="mud-input-input" />
-            <MudText Typo="Typo.caption" Class="mt-1">
-                @(SelectedFile is null ? "No file selected" : $"{SelectedFile.Name} ({SelectedFile.Size:N0} bytes)")
-            </MudText>
-        </MudItem>
-        <MudItem xs="12" md="6">
-            <MudTextField T="string" @bind-Value="_benchmarkName" Label="Benchmark name" Required="true"
-                          HelperText="The name the benchmark was established under" />
-            <MudTextField T="string" @bind-Value="_instrument" Label="Instrument" Required="true"
-                          HelperText="Benchmark operations require an instrument identity" />
-        </MudItem>
-        <MudItem xs="12">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       Disabled="@(SelectedFile is null || IsSubmitting || string.IsNullOrWhiteSpace(_benchmarkName) || string.IsNullOrWhiteSpace(_instrument))"
-                       OnClick="SubmitAsync">
-                @if (IsSubmitting)
-                {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                    <span>Comparing...</span>
-                }
-                else
-                {
-                    <span>Compare dataset</span>
-                }
-            </MudButton>
-        </MudItem>
-    </MudGrid>
-</MudPaper>
+    <DashboardCard Class="mb-4">
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <InputFile OnChange="HandleFileChange" class="mud-input-input" />
+                <MudText Typo="Typo.caption" Class="mt-1" Style="color: #94a3b8;">
+                    @(SelectedFile is null ? "No file selected" : $"{SelectedFile.Name} ({SelectedFile.Size:N0} bytes)")
+                </MudText>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField T="string" @bind-Value="_benchmarkName" Label="Benchmark name" Required="true"
+                              HelperText="The name the benchmark was established under" />
+                <MudTextField T="string" @bind-Value="_instrument" Label="Instrument" Required="true"
+                              HelperText="Benchmark operations require an instrument identity" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           Disabled="@(SelectedFile is null || IsSubmitting || string.IsNullOrWhiteSpace(_benchmarkName) || string.IsNullOrWhiteSpace(_instrument))"
+                           OnClick="SubmitAsync">
+                    @if (IsSubmitting)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        <span>Comparing...</span>
+                    }
+                    else
+                    {
+                        <span>Compare dataset</span>
+                    }
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </DashboardCard>
 
-@if (Rejection is not null)
-{
-    <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">
-        <MudText Typo="Typo.body2"><strong>@Rejection.Code</strong> &mdash; @Rejection.Reason</MudText>
-        <MudText Typo="Typo.caption">@Rejection.Guidance</MudText>
-    </MudAlert>
-}
+    @if (Rejection is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">
+            <MudText Typo="Typo.body2"><strong>@Rejection.Code</strong> &mdash; @Rejection.Reason</MudText>
+            <MudText Typo="Typo.caption">@Rejection.Guidance</MudText>
+        </MudAlert>
+    }
 
-@if (UploadError is not null)
-{
-    <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">@UploadError</MudAlert>
-}
+    @if (UploadError is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">@UploadError</MudAlert>
+    }
+</MudContainer>
 
 @code
 {
