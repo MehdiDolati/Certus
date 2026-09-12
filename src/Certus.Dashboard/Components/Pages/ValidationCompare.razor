@@ -32,6 +32,16 @@
                               HelperText="The name the benchmark was established under" />
                 <MudTextField T="string" @bind-Value="_instrument" Label="Instrument" Required="true"
                               HelperText="Benchmark operations require an instrument identity" />
+                <MudSelect T="string" @bind-Value="_selectedDelimiter" Label="Delimiter" Class="mt-4"
+                           HelperText="Auto-detect inspects the first line (comma, semicolon, or tab)">
+                    <MudSelectItem Value="@("auto")">Auto-detect</MudSelectItem>
+                    <MudSelectItem Value="@("comma")">Comma (,)</MudSelectItem>
+                    <MudSelectItem Value="@("semicolon")">Semicolon (;)</MudSelectItem>
+                    <MudSelectItem Value="@("tab")">Tab</MudSelectItem>
+                </MudSelect>
+                <MudCheckBox T="bool" @bind-Value="_hasHeader" Class="mt-4"
+                             Label="CSV file has a header row (MetaTrader exports have none)"
+                             Color="Color.Primary" />
             </MudItem>
             <MudItem xs="12">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
@@ -70,6 +80,8 @@
     private IBrowserFile? SelectedFile;
     private string _benchmarkName = string.Empty;
     private string _instrument = string.Empty;
+    private string _selectedDelimiter = "auto";
+    private bool _hasHeader;
     private bool IsSubmitting;
     private FatalDiagnostic? Rejection;
     private string? UploadError;
@@ -107,7 +119,11 @@
                 Timeframe: null,
                 Market: MarketProfile.Forex,
                 CalendarReference: null,
-                Csv: new CsvInputOptions { HasHeader = true, Delimiter = "comma" },
+                Csv: new CsvInputOptions
+                {
+                    HasHeader = _hasHeader,
+                    Delimiter = _selectedDelimiter == "auto" ? null : _selectedDelimiter
+                },
                 ReportVersion: 2,
                 Score: true,
                 ScoreWeights: null,
