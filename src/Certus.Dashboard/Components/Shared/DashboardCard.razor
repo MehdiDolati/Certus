@@ -1,0 +1,27 @@
+@* DashboardCard (T005): the canonical dark gradient content surface used across
+   the dashboard (mirrors Components/Shared/KpiCard.razor and the content cards on
+   PlatformDashboard.razor). Replaces the un-themed `MudPaper Elevation="2"` light
+   surface on the validation pages (FR-004, AC-003, AC-004, AC-015, NFR-002).
+   Invariants:
+     DC-1 — renders the canonical surface: gradient #1e293b→#0f172a,
+             border 1px solid #334155, radius 16px.
+     DC-2 — MUST NOT render a MudBlazor default light elevated surface. *@
+
+<MudPaper Elevation="0" Class="@CssClass"
+          Style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 16px;">
+    @ChildContent
+</MudPaper>
+
+@code {
+    // Card body content. Required.
+    [Parameter, EditorRequired] public RenderFragment? ChildContent { get; set; }
+
+    // Pass-through spacing utility classes (e.g., "mb-4").
+    [Parameter] public string? Class { get; set; }
+
+    // Inner padding utility (defaults to pa-6).
+    [Parameter] public string? Padding { get; set; } = "pa-6";
+
+    private string CssClass => string.Join(" ",
+        new[] { Padding, Class }.Where(part => !string.IsNullOrWhiteSpace(part)));
+}

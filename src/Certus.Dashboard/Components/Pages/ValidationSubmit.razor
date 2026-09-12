@@ -8,66 +8,72 @@
 
 <PageTitle>Data Validation</PageTitle>
 
-<h1>Data Validation</h1>
-<p class="mud-typography mud-typography-body1 mud-text-secondary">
-    Upload an OHLCV CSV dataset and the Certus-integrated validator checks missing candles,
-    duplicate records, invalid OHLC values, closed-market records, time gaps, and malformed rows.
-</p>
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="pa-6">
+    <PageHeader Title="Data Validation"
+                Description="Upload an OHLCV CSV dataset and Certus checks missing candles, duplicate records, invalid OHLC values, closed-market records, time gaps, and malformed rows."
+                Icon="@Icons.Material.Filled.FactCheck">
+        <Actions>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.CompareArrows"
+                       Href="/validation/compare">Benchmark comparison</MudButton>
+        </Actions>
+    </PageHeader>
 
-<MudPaper Class="pa-6 mb-4" Elevation="2">
-    <MudGrid>
-        <MudItem xs="12" md="6">
-            <InputFile OnChange="HandleFileChange" class="mud-input-input" />
-            <MudButton HtmlTag="label" Variant="Variant.Text" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.UploadFile" Class="mt-2">
-                @(SelectedFile is null ? "No file selected" : SelectedFile.Name)
-            </MudButton>
-            @if (SelectedFile is not null)
-            {
-                <MudText Class="mt-1" Typo="Typo.caption">@($"{SelectedFile.Name} ({SelectedFile.Size:N0} bytes)")</MudText>
-            }
-        </MudItem>
-        <MudItem xs="12" md="6">
-            <MudSelect T="string" @bind-Value="_selectedTimeframe" Label="Timeframe (optional)" Clearable="true"
-                       HelperText="Leave empty to infer from the data">
-                <MudSelectItem Value="@("D1")">D1 - Daily</MudSelectItem>
-                <MudSelectItem Value="@("H1")">H1 - Hourly</MudSelectItem>
-                <MudSelectItem Value="@("M30")">M30 - 30 minutes</MudSelectItem>
-                <MudSelectItem Value="@("M15")">M15 - 15 minutes</MudSelectItem>
-                <MudSelectItem Value="@("M5")">M5 - 5 minutes</MudSelectItem>
-                <MudSelectItem Value="@("M1")">M1 - 1 minute</MudSelectItem>
-            </MudSelect>
-            <MudCheckBox T="bool" @bind-Value="_score" Label="Compute quality score" Color="Color.Primary" />
-        </MudItem>
-        <MudItem xs="12">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(SelectedFile is null || IsSubmitting)"
-                       OnClick="SubmitAsync">
-                @if (IsSubmitting)
+    <DashboardCard Class="mb-4">
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <InputFile OnChange="HandleFileChange" class="mud-input-input" />
+                <MudButton HtmlTag="label" Variant="Variant.Text" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.UploadFile" Class="mt-2">
+                    @(SelectedFile is null ? "No file selected" : SelectedFile.Name)
+                </MudButton>
+                @if (SelectedFile is not null)
                 {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                    <span>Validating...</span>
+                    <MudText Class="mt-1" Typo="Typo.caption" Style="color: #94a3b8;">@($"{SelectedFile.Name} ({SelectedFile.Size:N0} bytes)")</MudText>
                 }
-                else
-                {
-                    <span>Validate dataset</span>
-                }
-            </MudButton>
-        </MudItem>
-    </MudGrid>
-</MudPaper>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="string" @bind-Value="_selectedTimeframe" Label="Timeframe (optional)" Clearable="true"
+                           HelperText="Leave empty to infer from the data">
+                    <MudSelectItem Value="@("D1")">D1 - Daily</MudSelectItem>
+                    <MudSelectItem Value="@("H1")">H1 - Hourly</MudSelectItem>
+                    <MudSelectItem Value="@("M30")">M30 - 30 minutes</MudSelectItem>
+                    <MudSelectItem Value="@("M15")">M15 - 15 minutes</MudSelectItem>
+                    <MudSelectItem Value="@("M5")">M5 - 5 minutes</MudSelectItem>
+                    <MudSelectItem Value="@("M1")">M1 - 1 minute</MudSelectItem>
+                </MudSelect>
+                <MudCheckBox T="bool" @bind-Value="_score" Label="Compute quality score" Color="Color.Primary" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(SelectedFile is null || IsSubmitting)"
+                           OnClick="SubmitAsync">
+                    @if (IsSubmitting)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        <span>Validating...</span>
+                    }
+                    else
+                    {
+                        <span>Validate dataset</span>
+                    }
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </DashboardCard>
 
-@if (Rejection is not null)
-{
-    <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">
-        <MudText Typo="Typo.body2"><strong>@Rejection.Code</strong> &mdash; @Rejection.Reason</MudText>
-        <MudText Typo="Typo.caption">@Rejection.Guidance</MudText>
-    </MudAlert>
-}
+    @if (Rejection is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">
+            <MudText Typo="Typo.body2"><strong>@Rejection.Code</strong> &mdash; @Rejection.Reason</MudText>
+            <MudText Typo="Typo.caption">@Rejection.Guidance</MudText>
+        </MudAlert>
+    }
 
-@if (UploadError is not null)
-{
-    <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">@UploadError</MudAlert>
-}
+    @if (UploadError is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">@UploadError</MudAlert>
+    }
+</MudContainer>
 
 @code
 {

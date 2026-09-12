@@ -1,0 +1,47 @@
+@* PageHeader (T004): the standard dashboard page-header composition —
+   accent icon tile + bold title + muted description + optional right-aligned
+   action slot. Mirrors the header of Components/Pages/PlatformDashboard.razor
+   so the validation pages achieve structural parity (FR-003, AC-003, AC-004,
+   AC-015). Invariants:
+     PH-1 — emits no <h1>/browser-default heading (renders via MudText Typo.h4).
+     PH-2 — 44px tile, radius 12px, white bold title, muted description. *@
+
+<div style="margin-bottom: 32px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 44px; height: 44px; border-radius: 12px; background: @IconGradient; display: flex; align-items: center; justify-content: center;">
+                <MudIcon Icon="@Icon" Size="Size.Medium" Style="color: white;" />
+            </div>
+            <div>
+                <MudText Typo="Typo.h4" Style="color: white; font-weight: 800; letter-spacing: -0.02em;">@Title</MudText>
+                @if (!string.IsNullOrWhiteSpace(Description))
+                {
+                    <MudText Typo="Typo.body2" Style="color: #64748b;">@Description</MudText>
+                }
+            </div>
+        </div>
+        @if (Actions is not null)
+        {
+            <div>
+                @Actions
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    // Bold page title, rendered via MudText Typo.h4 (never <h1>). Required.
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+
+    // Muted supporting line (#64748b). Hidden when null/empty.
+    [Parameter] public string? Description { get; set; }
+
+    // Material icon rendered inside the accent tile. Required.
+    [Parameter, EditorRequired] public string Icon { get; set; } = string.Empty;
+
+    // Tile background gradient (defaults match the dashboard primary→secondary).
+    [Parameter] public string IconGradient { get; set; } = "linear-gradient(135deg, #3b82f6, #8b5cf6)";
+
+    // Optional right-aligned action slot (e.g., the secondary "Compare" action).
+    [Parameter] public RenderFragment? Actions { get; set; }
+}
